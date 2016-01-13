@@ -13,6 +13,17 @@ import pycarwings.vehicleservice
 
 DEBUG=True
 
+CONNECTED_VALUE_MAP = {
+	'CONNECTED': True,
+	'NOT_CONNECTED'  : False
+}
+
+CHARGING_VALUE_MAP = {
+	'CHARGING': True,
+	'NOT_CHARGING'  : False
+}
+
+
 
 class IndigoLoggingHandler(logging.Handler):
 	def __init__(self, p):
@@ -42,19 +53,45 @@ class IndigoLeaf:
 	def update_status(self):
 		self.log.info("updating status for %s" % self.vin)
 		status = self.userservice.get_latest_status(self.vin)
+
 		"""
-		batteryCapacity : 0 (integer)
-     batteryRemainingCharge : 0 (integer)
-     chargingStatus : false (bool)
+		  Nissan Leaf                     !!python/object:pycarwings.response.LatestBatteryStatus
+latest_battery_status: !!python/object:pycarwings.response.SmartphoneLatestBatteryStatusResponse
+  battery_capacity: !!python/unicode '12'
+  battery_charging_status: !!python/unicode 'NOT_CHARGING'
+  battery_remaining_amount: !!python/unicode '7'
+  cruising_range_ac_off: !!python/unicode '71208.0'
+  cruising_range_ac_on: !!python/unicode '70176.0'
+  last_battery_status_check_execution_time: 2016-01-13 21:15:36+00:00
+  notification_date_and_time: 2016-01-13 21:15:54+00:00
+  operation_date_and_time: 2016-01-13 21:15:36+00:00
+  operation_result: !!python/unicode 'START'
+  plugin_state: !!python/unicode 'NOT_CONNECTED'
+  time_required_to_full: !!python/object/apply:datetime.timedelta [0, 41400, 0]
+  time_required_to_full_L2: !!python/object/apply:datetime.timedelta [0, 16200, 0]
+  """
+		"""
      climateControl : off (on/off bool)
-     connectedStatus : false (bool)
-     cruisingRangeACOff : 0 (integer)
-     cruisingRangeACOn : 0 (integer)
-     timeToFullL2 : 0 (integer)
-     timeToFullTrickle : 0 (integer)
 	 """
-		self.dev.updateStateOnServer(key="batteryCapacity", value=status.latest_battery_status.battery_capacity)
-		self.dev.updateStateOnServer(key="batteryRemainingCharge", value=status.latest_battery_status.battery_remaining_amount)
+	 	lbs = status.latest_battery_status
+		self.dev.updateStateOnServer(key="batteryCapacity", value=lbs.battery_capacity)
+		self.dev.updateStateOnServer(key="batteryRemainingCharge", value=lbs.battery_remaining_amount)
+		self.dev.updateStateOnServer(key="connectedStatus", value=CONNECTED_VALUE_MAP[lbs.plugin_state])
+		no_ac = float(lbs.cruising_range_ac_off) / 1000
+		self.dev.updateStateOnServer(key="cruisingRangeACOff", value=no_ac, decimalPlaces=1,
+									uiValue=u"%skm" % "{0:.1f}".format(no_ac))
+		yes_ac = float(lbs.cruising_range_ac_on) / 1000
+		self.dev.updateStateOnServer(key="cruisingRangeACOn", value=yes_ac, decimalPlaces=1,
+									uiValue=u"%skm" % "{0:.1f}".format(yes_ac))
+		self.dev.updateStateOnServer(key="chargingStatus", value=CHARGING_VALUE_MAP[lbs.battery_charging_status])
+
+		trickle_time_m = float(lbs.time_required_to_full.days * 1440) + (float(lbs.time_required_to_full.seconds) / 60)
+		l2_time_m = float(lbs.time_required_to_full_L2.days * 1440) + (float(lbs.time_required_to_full_L2.seconds) / 60)
+		self.dev.updateStateOnServer(key="timeToFullTrickle", value=trickle_time_m, decimalPlaces=0,
+									uiValue=str(lbs.time_required_to_full))
+		self.dev.updateStateOnServer(key="timeToFullL2", value=l2_time_m, decimalPlaces=0,
+									uiValue=str(lbs.time_required_to_full_L2))
+
 		self.log.debug("finished updating status for %s" % self.vin)
 
 
