@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<!-- If your plugin defines device types, you can define them here.
+
+	 Devices must specify their type (via the type attribute):
+
+		relay (ON/OFF/STATUS)
+		dimmer (ON/OFF/DIM/BRIGHTEN/SET BRIGHTNESS/STATUS)
+		speedcontrol (ON/OFF/SET SPEED LEVEL/SET SPEED INDEX/INCREASE/DECREASE/STATUS)
+		sensor (ON/OFF/STATUS)
+		thermostat
+		sprinkler
+		custom
+
+	 The first six inherit states, actions and events from Indigo. You can
+	 also specify your own custom actions and additional states, if needed.
+
+	 The Device example below specifies the thermostat type.
+
+	 Devices must also specify a unique typeID - so, for instance, if you define
+	 2 different thermostat type devices then your plugin can distinguish between
+	 the two by the typeID.
+-->
+
+<Devices>
+
+	<Device type="custom" id="nissanLeaf">
+		<Name>Nissan Leaf</Name>
+		<ConfigUI>
+			<Field id="vin" type="menu">
+				<List class="self" method="get_vins"/>
+			</Field>
+		</ConfigUI>
+		<States>
+			<State id="batteryRemainingCharge" readonly="true">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Charge</TriggerLabel>
+				<ControlPageLabel>Charge</ControlPageLabel>
+			</State>
+			<State id ="batteryCapacity" readonly="true">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Capacity</TriggerLabel>
+				<ControlPageLabel>Capacity</ControlPageLabel>
+			</State>
+			<State id="chargingStatus" readonly="true">
+				<ValueType booltype="YesNo">Boolean</ValueType>
+				<TriggerLabel>Charging</TriggerLabel>
+				<ControlPageLabel>Charging</ControlPageLabel>
+			</State>
+			<State id="connectedStatus" readonly="true">
+				<ValueType booltype="YesNo">Boolean</ValueType>
+				<TriggerLabel>Connected</TriggerLabel>
+				<ControlPageLabel>Connected</ControlPageLabel>
+			</State>
+"""
+battery_capacity: !!python/unicode '12'
+battery_charging_status: !!python/unicode 'NOT_CHARGING'
+battery_remaining_amount: !!python/unicode '7'
+cruising_range_ac_off: !!python/unicode '71208.0'
+cruising_range_ac_on: !!python/unicode '70176.0'
+last_battery_status_check_execution_time: 2016-01-13 21:15:36+00:00
+notification_date_and_time: 2016-01-13 21:15:54+00:00
+operation_date_and_time: 2016-01-13 21:15:36+00:00
+operation_result: !!python/unicode 'START'
+plugin_state: !!python/unicode 'NOT_CONNECTED'
+time_required_to_full: !!python/object/apply:datetime.timedelta [0, 41400, 0]
+time_required_to_full_L2: !!python/object/apply:datetime.timedelta [0, 16200, 0]
+"""
+			<State id="cruisingRangeACOff" readonly="true">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Cruising Range (no A/C)</TriggerLabel>
+				<ControlPageLabel>Cruising Range (no A/C)</ControlPageLabel>
+			</State>
+			<State id="cruisingRangeACOn" readonly="true">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Cruising Range (with AC)</TriggerLabel>
+				<ControlPageLabel>Cruising Range (with AC)</ControlPageLabel>
+			</State>
+			<State id="timeToFullTrickle" readonly="true">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Time to Full Charge (trickle)</TriggerLabel>
+				<ControlPageLabel>Time to Full Charge (trickle)</ControlPageLabel>
+			</State>
+			<State id="timeToFullL2" readonly="true">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Time to Full Charge (L2)</TriggerLabel>
+				<ControlPageLabel>Time to Full Charge (L2)</ControlPageLabel>
+			</State>
+			<State id="climateControl" readonly="true">
+				<ValueType boolType="OnOff">Boolean</ValueType>
+				<TriggerLabel>Climate Control</TriggerLabel>
+				<ControlPageLabel>Climate Control</ControlPageLabel>
+			</State>
+		</States>
+		<UiDisplayStateId>stateOfCharge</UiDisplayStateId>
+	</Device>
+</Devices>

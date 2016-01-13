@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<PluginConfig>
+	<SupportURL>http://www.yourdomain.com/plugin/config.html</SupportURL>
+
+	<Field id="username" type="textfield">
+		<Label>Username:</Label>
+	</Field>
+	<Field id="password" type="textfield" secure="true">
+		<Label>Password:</Label>
+	</Field>
+
+</PluginConfig>
