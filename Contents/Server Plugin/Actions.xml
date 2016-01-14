@@ -9,13 +9,13 @@
 	 backlightBrightness state added to Devices.xml.
 -->
 <Actions>
-	<Action id="setAwayStatus" deviceFilter="self">
-		<Name>Set Away Status</Name>
-		<CallbackMethod>setAwayStatus</CallbackMethod>
-		<ConfigUI>
-			<Field id="away" type="checkbox" defaultValue="false">
-				<Label>I am away:</Label>
-			</Field>
-		</ConfigUI>
+	<Action id="startCharging" deviceFilter="self">
+		<Name>Start Charging</Name>
+		<CallbackMethod>start_charging</CallbackMethod>
 	</Action>
+	<Action id="startClimateControl" deviceFilter="self">
+		<Name>Start Climate Control</Name>
+		<CallbackMethod>start_climate_control</CallbackMethod>
+	</Action>
+
 </Actions>

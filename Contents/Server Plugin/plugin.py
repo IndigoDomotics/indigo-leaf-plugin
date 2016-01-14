@@ -168,6 +168,11 @@ class Plugin(indigo.PluginBase):
 		self.log.error("not logged in")
 		return []
 
+	def start_charging(self, action):
+		self.log.error("charging action: %s" % action)
+
+	def start_climate_control(self, action):
+		self.log.error("climate control action: %s" % action)
 
 	def startup(self):
 		self.debugLog(u"startup called")
