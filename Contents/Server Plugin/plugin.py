@@ -194,7 +194,9 @@ class Plugin(indigo.PluginBase):
 		newProps["SupportsBatteryLevel"] = True
 		dev.replacePluginPropsOnServer(newProps)
 
-		self.leaves.append(IndigoLeaf(dev, self.userservice, self.vehicleservice))
+		leaf = IndigoLeaf(dev, self.userservice, self.vehicleservice)
+		leaf.update_status()
+		self.leaves.append(leaf)
 
 	def deviceStopComm(self, dev):
 		self.leaves = [
