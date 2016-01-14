@@ -19,7 +19,8 @@ CONNECTED_VALUE_MAP = {
 }
 
 CHARGING_VALUE_MAP = {
-	'CHARGING': True,
+	'NORMAL_CHARGING': True,
+	'CHARGING': True, # is this one valid? I made it up.
 	'NOT_CHARGING'  : False
 }
 
@@ -76,23 +77,38 @@ latest_battery_status: !!python/object:pycarwings.response.SmartphoneLatestBatte
 	 	lbs = status.latest_battery_status
 		self.dev.updateStateOnServer(key="batteryCapacity", value=lbs.battery_capacity)
 		self.dev.updateStateOnServer(key="batteryRemainingCharge", value=lbs.battery_remaining_amount)
-		is_connected = CONNECTED_VALUE_MAP[lbs.plugin_state]
+
+		try:
+			is_connected = CONNECTED_VALUE_MAP[lbs.plugin_state]
+		except KeyError:
+			self.log.error(u"Unknown connected state: '%s'" % lbs.plugin_state)
+			is_connected = True # probably
 		self.dev.updateStateOnServer(key="connectedStatus", value=is_connected)
+
 		no_ac = float(lbs.cruising_range_ac_off) / 1000
 		self.dev.updateStateOnServer(key="cruisingRangeACOff", value=no_ac, decimalPlaces=1,
 									uiValue=u"%skm" % "{0:.1f}".format(no_ac))
 		yes_ac = float(lbs.cruising_range_ac_on) / 1000
 		self.dev.updateStateOnServer(key="cruisingRangeACOn", value=yes_ac, decimalPlaces=1,
 									uiValue=u"%skm" % "{0:.1f}".format(yes_ac))
-		is_charging = CHARGING_VALUE_MAP[lbs.battery_charging_status]
+		try:
+			is_charging = CHARGING_VALUE_MAP[lbs.battery_charging_status]
+		except KeyError:
+			self.log.error(u"Unknown charging state: '%s'" % lbs.battery_charging_status)
+			is_charging = True # probably
 		self.dev.updateStateOnServer(key="chargingStatus", value=is_charging)
 
-		trickle_time_m = float(lbs.time_required_to_full.days * 1440) + (float(lbs.time_required_to_full.seconds) / 60)
-		l2_time_m = float(lbs.time_required_to_full_L2.days * 1440) + (float(lbs.time_required_to_full_L2.seconds) / 60)
-		self.dev.updateStateOnServer(key="timeToFullTrickle", value=trickle_time_m, decimalPlaces=0,
-									uiValue=str(lbs.time_required_to_full))
-		self.dev.updateStateOnServer(key="timeToFullL2", value=l2_time_m, decimalPlaces=0,
-									uiValue=str(lbs.time_required_to_full_L2))
+		# may be None if we're fast charging(?)
+		if lbs.time_required_to_full:
+			trickle_time_m = float(lbs.time_required_to_full.days * 1440) + (float(lbs.time_required_to_full.seconds) / 60)
+			self.dev.updateStateOnServer(key="timeToFullTrickle", value=trickle_time_m, decimalPlaces=0,
+										uiValue=str(lbs.time_required_to_full))
+
+		# may be None if we're trickle charging
+		if lbs.time_required_to_full_L2:
+			l2_time_m = float(lbs.time_required_to_full_L2.days * 1440) + (float(lbs.time_required_to_full_L2.seconds) / 60)
+			self.dev.updateStateOnServer(key="timeToFullL2", value=l2_time_m, decimalPlaces=0,
+										uiValue=str(lbs.time_required_to_full_L2))
 
 		pct = 100 * float(lbs.battery_remaining_amount) / float(lbs.battery_capacity)
 		self.dev.updateStateOnServer(key="batteryLevel", value=pct, decimalPlaces=0,
