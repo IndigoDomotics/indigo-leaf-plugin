@@ -42,7 +42,7 @@ class IndigoLoggingHandler(logging.Handler):
 class IndigoLeaf:
 	def __init__(self, dev, userservice, vehicleservice):
 		self.dev = dev
-		self.vin = dev.pluginProps["vin"]
+		self.vin = dev.pluginProps["address"]
 		self.userservice = userservice
 		self.vehicleservice = vehicleservice
 		self.log = logging.getLogger('indigo.nissanleaf.plugin')
@@ -206,7 +206,7 @@ class Plugin(indigo.PluginBase):
 	def deviceStopComm(self, dev):
 		self.leaves = [
 			l for l in self.leaves
-				if l.vin != dev.pluginProps["vin"]
+				if l.vin != dev.pluginProps["address"]
 		]
 
 	def runConcurrentThread(self):
