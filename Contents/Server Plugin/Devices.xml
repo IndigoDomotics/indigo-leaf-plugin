@@ -33,8 +33,8 @@
 		<States>
 			<State id="batteryRemainingCharge" readonly="true">
 				<ValueType>Number</ValueType>
-				<TriggerLabel>Charge</TriggerLabel>
-				<ControlPageLabel>Charge</ControlPageLabel>
+				<TriggerLabel>State of Charge</TriggerLabel>
+				<ControlPageLabel>State of Charge</ControlPageLabel>
 			</State>
 			<State id ="batteryCapacity" readonly="true">
 				<ValueType>Number</ValueType>
@@ -91,6 +91,6 @@ time_required_to_full_L2: !!python/object/apply:datetime.timedelta [0, 16200, 0]
 				<ControlPageLabel>Climate Control</ControlPageLabel>
 			</State>
 		</States>
-		<UiDisplayStateId>stateOfCharge</UiDisplayStateId>
+		<UiDisplayStateId>batteryLevel</UiDisplayStateId>
 	</Device>
 </Devices>

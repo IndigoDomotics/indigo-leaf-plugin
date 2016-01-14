@@ -76,14 +76,16 @@ latest_battery_status: !!python/object:pycarwings.response.SmartphoneLatestBatte
 	 	lbs = status.latest_battery_status
 		self.dev.updateStateOnServer(key="batteryCapacity", value=lbs.battery_capacity)
 		self.dev.updateStateOnServer(key="batteryRemainingCharge", value=lbs.battery_remaining_amount)
-		self.dev.updateStateOnServer(key="connectedStatus", value=CONNECTED_VALUE_MAP[lbs.plugin_state])
+		is_connected = CONNECTED_VALUE_MAP[lbs.plugin_state]
+		self.dev.updateStateOnServer(key="connectedStatus", value=is_connected)
 		no_ac = float(lbs.cruising_range_ac_off) / 1000
 		self.dev.updateStateOnServer(key="cruisingRangeACOff", value=no_ac, decimalPlaces=1,
 									uiValue=u"%skm" % "{0:.1f}".format(no_ac))
 		yes_ac = float(lbs.cruising_range_ac_on) / 1000
 		self.dev.updateStateOnServer(key="cruisingRangeACOn", value=yes_ac, decimalPlaces=1,
 									uiValue=u"%skm" % "{0:.1f}".format(yes_ac))
-		self.dev.updateStateOnServer(key="chargingStatus", value=CHARGING_VALUE_MAP[lbs.battery_charging_status])
+		is_charging = CHARGING_VALUE_MAP[lbs.battery_charging_status]
+		self.dev.updateStateOnServer(key="chargingStatus", value=is_charging)
 
 		trickle_time_m = float(lbs.time_required_to_full.days * 1440) + (float(lbs.time_required_to_full.seconds) / 60)
 		l2_time_m = float(lbs.time_required_to_full_L2.days * 1440) + (float(lbs.time_required_to_full_L2.seconds) / 60)
@@ -91,6 +93,32 @@ latest_battery_status: !!python/object:pycarwings.response.SmartphoneLatestBatte
 									uiValue=str(lbs.time_required_to_full))
 		self.dev.updateStateOnServer(key="timeToFullL2", value=l2_time_m, decimalPlaces=0,
 									uiValue=str(lbs.time_required_to_full_L2))
+
+		pct = 100 * float(lbs.battery_remaining_amount) / float(lbs.battery_capacity)
+		self.dev.updateStateOnServer(key="batteryLevel", value=pct, decimalPlaces=0,
+									uiValue=u"%s%%" % "{0:.0f}".format(pct))
+
+		if is_charging:
+			self.log.debug("using 'charger on' icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryChargerOn)
+		elif is_connected:
+			self.log.debug("using 'charger off' icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryCharger)
+		elif pct >= 87.5:
+			self.log.debug("using 'battery high' icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevelHigh)
+		elif pct >= 62.5:
+			self.log.debug("using 'battery 75' icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel75)
+		elif pct > 37.5:
+			self.log.debug("using 'battery 50' icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel50)
+		elif pct > 15:
+			self.log.debug("using 'battery 25' icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel25)
+		else:
+			self.log.debug("using 'battery low' icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevelLow)
 
 		self.log.debug("finished updating status for %s" % self.vin)
 
@@ -146,6 +174,10 @@ class Plugin(indigo.PluginBase):
 
 	def deviceStartComm(self, dev):
 #		self.debugLog('deviceStartComm: %s' % dev)
+		newProps = dev.pluginProps
+		newProps["SupportsBatteryLevel"] = True
+		dev.replacePluginPropsOnServer(newProps)
+
 		self.leaves.append(IndigoLeaf(dev, self.userservice, self.vehicleservice))
 
 	def deviceStopComm(self, dev):
