@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <PluginConfig>
-	<SupportURL>http://www.yourdomain.com/plugin/config.html</SupportURL>
+	<SupportURL>http://forums.indigodomo.com/viewtopic.php?t=15461</SupportURL>
 
 	<Field id="username" type="textfield">
 		<Label>Username:</Label>
