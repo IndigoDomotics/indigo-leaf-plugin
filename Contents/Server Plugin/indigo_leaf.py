@@ -71,12 +71,16 @@ class IndigoLeaf:
 			trickle_time_m = float(lbs.time_required_to_full.days * 1440) + (float(lbs.time_required_to_full.seconds) / 60)
 			self.dev.updateStateOnServer(key="timeToFullTrickle", value=trickle_time_m, decimalPlaces=0,
 										uiValue=str(lbs.time_required_to_full))
+		else:
+			self.dev.updateStateOnServer(key="timeToFullTrickle", value=-1, decimalPlaces=0, uiValue="-")
 
 		# may be None if we're trickle charging
 		if lbs.time_required_to_full_L2:
 			l2_time_m = float(lbs.time_required_to_full_L2.days * 1440) + (float(lbs.time_required_to_full_L2.seconds) / 60)
 			self.dev.updateStateOnServer(key="timeToFullL2", value=l2_time_m, decimalPlaces=0,
 										uiValue=str(lbs.time_required_to_full_L2))
+		else:
+			self.dev.updateStateOnServer(key="timeToFullL2", value=-1, decimalPlaces=0, uiValue="-")
 
 		pct = 100 * float(lbs.battery_remaining_amount) / float(lbs.battery_capacity)
 		self.dev.updateStateOnServer(key="batteryLevel", value=pct, decimalPlaces=0,
