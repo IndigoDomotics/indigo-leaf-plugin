@@ -1,0 +1,14 @@
+foo: !!python/object:pycarwings.response.LatestBatteryStatus
+	latest_battery_status: !!python/object:pycarwings.response.SmartphoneLatestBatteryStatusResponse
+	battery_capacity: !!python/unicode '12'
+	battery_charging_status: !!python/unicode 'NOT_CHARGING'
+	battery_remaining_amount: !!python/unicode '7'
+	cruising_range_ac_off: !!python/unicode '71208.0'
+	cruising_range_ac_on: !!python/unicode '70176.0'
+	last_battery_status_check_execution_time: 2016-01-13 21:15:36+00:00
+	notification_date_and_time: 2016-01-13 21:15:54+00:00
+	operation_date_and_time: 2016-01-13 21:15:36+00:00
+	operation_result: !!python/unicode 'START'
+	plugin_state: !!python/unicode 'NOT_CONNECTED'
+	time_required_to_full: !!python/object/apply:datetime.timedelta [0, 41400, 0]
+	time_required_to_full_L2: !!python/object/apply:datetime.timedelta [0, 16200, 0]
