@@ -56,11 +56,11 @@ class Plugin(indigo.PluginBase):
 		return []
 
 	def start_charging(self, action):
-		self.log.error("charging action: %s" % action)
+		self.log.debug("charging action: %s" % action)
 		self.leaves[0].start_charging()
 
 	def start_climate_control(self, action):
-		self.log.error("climate control action: %s" % action)
+		self.log.debug("climate control action: %s" % action)
 		self.leaves[0].start_climate_control()
 
 	def startup(self):
