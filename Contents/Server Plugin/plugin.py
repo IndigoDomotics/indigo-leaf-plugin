@@ -9,6 +9,7 @@ import time
 import pycarwings.connection
 import pycarwings.userservice
 import pycarwings.vehicleservice
+import yaml
 
 
 DEBUG=True
@@ -54,6 +55,7 @@ class IndigoLeaf:
 	def update_status(self):
 		self.log.info("updating status for %s" % self.vin)
 		status = self.userservice.get_latest_status(self.vin)
+		self.log.debug("status: %s" % yaml.dump(status))
 
 		"""
 		  Nissan Leaf                     !!python/object:pycarwings.response.LatestBatteryStatus
