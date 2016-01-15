@@ -41,12 +41,17 @@
 				<TriggerLabel>Capacity</TriggerLabel>
 				<ControlPageLabel>Capacity</ControlPageLabel>
 			</State>
-			<State id="chargingStatus" readonly="true">
+			<State id="charging" readonly="true">
 				<ValueType booltype="YesNo">Boolean</ValueType>
 				<TriggerLabel>Charging</TriggerLabel>
 				<ControlPageLabel>Charging</ControlPageLabel>
 			</State>
-			<State id="connectedStatus" readonly="true">
+			<State id="chargingStatus" readonly="true">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Charging Status</TriggerLabel>
+				<ControlPageLabel>Charging Status</ControlPageLabel>
+			</State>
+			<State id="connected" readonly="true">
 				<ValueType booltype="YesNo">Boolean</ValueType>
 				<TriggerLabel>Connected</TriggerLabel>
 				<ControlPageLabel>Connected</ControlPageLabel>
