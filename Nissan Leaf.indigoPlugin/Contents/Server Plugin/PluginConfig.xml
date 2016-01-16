@@ -8,6 +8,13 @@
 	<Field id="password" type="textfield" secure="true">
 		<Label>Password:</Label>
 	</Field>
+	<Field id ="region" type="menu">
+		<Label>Region:</Label>
+		<List>
+			<Option value="US">US</Option>
+			<Option value="EU">EU</Option>
+		</List>
+	</Field>
 
 	<Field id="separator1" type="separator"/>
 
