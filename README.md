@@ -7,7 +7,6 @@ Embeds several Python libraries:
 * [PyYAML][pyyaml]: YAML support; only used for logging at the moment, so it may be removed in a later version
 
 ### Known Limitations
-* Remaining travel distance reported only in kilometers
 * Only supports a single Nissan Leaf per login account
 * "start charging" and "start climate control" actions have been implemented, but not yet tested
 * Doesn't read current climate control state (because I'm not sure how to determine it)

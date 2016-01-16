@@ -8,10 +8,18 @@ import pycarwings.connection
 import pycarwings.userservice
 import pycarwings.vehicleservice
 
-from indigo_leaf import IndigoLeaf
+import indigo_leaf
+
+import distance_scale
 
 
 DEBUG=True
+DISTANCE_SCALE_PLUGIN_PREF="distanceUnit"
+
+DISTANCE_SCALE_MAP = {
+	"k" : distance_scale.Kilometers(),
+	"m" : distance_scale.Miles()
+}
 
 class IndigoLoggingHandler(logging.Handler):
 	def __init__(self, p):
@@ -25,6 +33,12 @@ class IndigoLoggingHandler(logging.Handler):
 			indigo.server.log(record.getMessage())
 		else:
 			self.plugin.errorLog(record.getMessage())
+
+def mapped_plugin_pref_value(pluginPrefs, map, key, default):
+	if key in pluginPrefs:
+		return map[pluginPrefs[key][0]]
+	else:
+		return default
 
 class Plugin(indigo.PluginBase):
 
@@ -43,6 +57,9 @@ class Plugin(indigo.PluginBase):
 			self.log.setLevel(logging.WARNING)
 
 		self.leaves = []
+
+		indigo_leaf.distance_format = mapped_plugin_pref_value(pluginPrefs, DISTANCE_SCALE_MAP,
+			DISTANCE_SCALE_PLUGIN_PREF, distance_scale.Miles())
 
 
 	def __del__(self):
@@ -88,7 +105,7 @@ class Plugin(indigo.PluginBase):
 		newProps["SupportsBatteryLevel"] = True
 		dev.replacePluginPropsOnServer(newProps)
 
-		leaf = IndigoLeaf(dev, self.userservice, self.vehicleservice)
+		leaf = indigo_leaf.IndigoLeaf(dev, self.userservice, self.vehicleservice)
 		leaf.update_status()
 		self.leaves.append(leaf)
 
@@ -97,6 +114,12 @@ class Plugin(indigo.PluginBase):
 			l for l in self.leaves
 				if l.vin != dev.pluginProps["address"]
 		]
+
+	def validatePrefsConfigUi(self, valuesDict):
+		indigo_leaf.distance_format = mapped_plugin_pref_value(valuesDict, DISTANCE_SCALE_MAP,
+			DISTANCE_SCALE_PLUGIN_PREF, distance_scale.Miles())
+		return True
+
 
 	def runConcurrentThread(self):
 		try:

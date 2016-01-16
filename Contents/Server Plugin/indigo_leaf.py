@@ -6,6 +6,8 @@ import pycarwings.connection
 import pycarwings.userservice
 import pycarwings.vehicleservice
 
+import distance_scale
+
 CONNECTED_VALUE_MAP = {
 	'CONNECTED': True,
 	'NOT_CONNECTED'  : False
@@ -16,6 +18,8 @@ CHARGING_VALUE_MAP = {
 	'CHARGING': True, # is this one valid? I made it up.
 	'NOT_CHARGING'  : False
 }
+
+distance_format = distance_scale.Miles()
 
 class IndigoLeaf:
 	def __init__(self, dev, userservice, vehicleservice):
@@ -51,13 +55,9 @@ class IndigoLeaf:
 			is_connected = True # probably
 		self.dev.updateStateOnServer(key="connected", value=is_connected)
 
-		no_ac = float(lbs.cruising_range_ac_off) / 1000
-		self.dev.updateStateOnServer(key="cruisingRangeACOff", value=no_ac, decimalPlaces=1,
-									uiValue=u"%skm" % "{0:.1f}".format(no_ac))
-		yes_ac = float(lbs.cruising_range_ac_on) / 1000
-		self.dev.updateStateOnServer(key="cruisingRangeACOn", value=yes_ac, decimalPlaces=1,
-									uiValue=u"%skm" % "{0:.1f}".format(yes_ac))
-
+		distance_format.report(self.dev, "cruisingRangeACOff", lbs.cruising_range_ac_off)
+		distance_format.report(self.dev, "cruisingRangeACOn", lbs.cruising_range_ac_on)
+		
 		self.dev.updateStateOnServer(key="chargingStatus", value=lbs.battery_charging_status)
 		try:
 			is_charging = CHARGING_VALUE_MAP[lbs.battery_charging_status]

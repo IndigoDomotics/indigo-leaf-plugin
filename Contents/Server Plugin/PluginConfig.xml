@@ -9,4 +9,15 @@
 		<Label>Password:</Label>
 	</Field>
 
+	<Field id="separator1" type="separator"/>
+
+	<Field id ="distanceUnit" type="menu">
+		<Label>Distance Unit:</Label>
+		<List>
+			<Option value="k">kilometer</Option>
+			<Option value="m">mile</Option>
+		</List>
+	</Field>
+
+
 </PluginConfig>
