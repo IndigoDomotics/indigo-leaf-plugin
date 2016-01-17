@@ -1,10 +1,13 @@
 import urllib2
 from xml.dom import minidom
+import logging
 
 BASE_URL = {
     "US" : "https://nissan-na-smartphone-biz.viaaq.com/aqPortal/smartphoneProxy",
     "EU" : "https://nissan-eu-smartphone-biz.viaaq.eu/aqPortal/smartphoneProxy"
 }
+
+log = logging.getLogger("pycarwings")
 
 class Connection(object):
     """Maintains a connection to CARWINGS, refreshing it when needed"""
@@ -29,6 +32,8 @@ class Connection(object):
 
     def post_xml(self, service, xml_data, suppress_response=False):
         data = xml_data.toxml()
+        log.debug("posting to: %s" % self.BASE_URL)
+        log.debug(data)
         request = urllib2.Request("%s%s" % (self.BASE_URL, service),
                                   data,
                                   {'Content-Type': 'text/xml',
