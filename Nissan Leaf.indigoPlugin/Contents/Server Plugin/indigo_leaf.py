@@ -22,26 +22,25 @@ CHARGING_VALUE_MAP = {
 distance_format = distance_scale.Miles()
 
 class IndigoLeaf:
-	def __init__(self, dev, userservice, vehicleservice):
+	def __init__(self, dev, plugin):
 		self.dev = dev
 		self.vin = dev.pluginProps["address"]
-		self.userservice = userservice
-		self.vehicleservice = vehicleservice
+		self.plugin = plugin
 		self.log = logging.getLogger('indigo.nissanleaf.plugin')
 
 	def start_charging(self):
-		self.vehicleservice.start_charge(self.vin)
+		self.plugin.vehicleservice.start_charge(self.vin)
 
 	def start_climate_control(self):
-		self.vehicleservice.start_ac_now(self.vin)
+		self.plugin.vehicleservice.start_ac_now(self.vin)
 
 	def request_status(self):
 		self.log.info("requesting status for %s" % self.vin)
-		self.vehicleservice.request_status(self.vin)
+		self.plugin.vehicleservice.request_status(self.vin)
 
 	def update_status(self):
 		self.log.info("updating status for %s" % self.vin)
-		status = self.userservice.get_latest_status(self.vin)
+		status = self.plugin.userservice.get_latest_status(self.vin)
 		self.log.debug("status: %s" % yaml.dump(status))
 
 	 	lbs = status.latest_battery_status
@@ -57,7 +56,7 @@ class IndigoLeaf:
 
 		distance_format.report(self.dev, "cruisingRangeACOff", lbs.cruising_range_ac_off)
 		distance_format.report(self.dev, "cruisingRangeACOn", lbs.cruising_range_ac_on)
-		
+
 		self.dev.updateStateOnServer(key="chargingStatus", value=lbs.battery_charging_status)
 		try:
 			is_charging = CHARGING_VALUE_MAP[lbs.battery_charging_status]
@@ -108,4 +107,4 @@ class IndigoLeaf:
 			self.log.debug("using 'battery low' icon")
 			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevelLow)
 
-		self.log.debug("finished updating status for %s" % self.vin)
+		self.log.info("finished updating status for %s" % self.vin)

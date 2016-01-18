@@ -13,7 +13,7 @@ import indigo_leaf
 import distance_scale
 
 
-DEBUG=True
+DEBUG=False
 DISTANCE_SCALE_PLUGIN_PREF="distanceUnit"
 
 DISTANCE_SCALE_MAP = {
@@ -49,12 +49,15 @@ class Plugin(indigo.PluginBase):
 		logHandler = IndigoLoggingHandler(self)
 
 		self.log = logging.getLogger('indigo.nissanleaf.plugin')
+		logging.getLogger("pycarwings").addHandler(logHandler)
 		self.log.addHandler(logHandler)
 
 		if DEBUG:
 			self.log.setLevel(logging.DEBUG)
+			logging.getLogger("pycarwings").setLevel(logging.DEBUG)
 		else:
-			self.log.setLevel(logging.WARNING)
+			self.log.setLevel(logging.INFO)
+			logging.getLogger("pycarwings").setLevel(logging.INFO)
 
 		self.leaves = []
 
@@ -82,21 +85,26 @@ class Plugin(indigo.PluginBase):
 
 	def startup(self):
 		self.debugLog(u"startup called")
-		self.connection = pycarwings.connection.Connection(self.pluginPrefs['username'], self.pluginPrefs['password'])
+		if 'region' not in self.pluginPrefs:
+			self.pluginPrefs['region'] = 'US'
+
+		self.connection = pycarwings.connection.Connection(self.pluginPrefs['username'], self.pluginPrefs['password'], self.pluginPrefs['region'])
 		self.userservice = pycarwings.userservice.UserService(self.connection)
 		self.vehicleservice = pycarwings.vehicleservice.VehicleService(self.connection)
 
-		status = self.userservice.login_and_get_status()
+	def shutdown(self):
+		self.debugLog(u"shutdown called")
 
+	def login(self):
+		self.log.debug("logging in to %s region" % self.connection.region)
+		self.log.debug("url: %s" % self.connection.BASE_URL)
+		status = self.userservice.login_and_get_status()
 		if self.connection.logged_in:
 			vin = status.user_info.vin
 			self.log.info( "logged in, vin: %s, nickname: %s" % (vin, status.user_info.nickname))
 			self.vins = [(vin, status.user_info.nickname)]
 		else:
 			self.log.error( "Log in invalid, please try again")
-
-	def shutdown(self):
-		self.debugLog(u"shutdown called")
 
 
 	def deviceStartComm(self, dev):
@@ -105,7 +113,10 @@ class Plugin(indigo.PluginBase):
 		newProps["SupportsBatteryLevel"] = True
 		dev.replacePluginPropsOnServer(newProps)
 
-		leaf = indigo_leaf.IndigoLeaf(dev, self.userservice, self.vehicleservice)
+		if not self.connection.logged_in:
+			self.login()
+
+		leaf = indigo_leaf.IndigoLeaf(dev, self)
 		leaf.update_status()
 		self.leaves.append(leaf)
 
@@ -118,12 +129,22 @@ class Plugin(indigo.PluginBase):
 	def validatePrefsConfigUi(self, valuesDict):
 		indigo_leaf.distance_format = mapped_plugin_pref_value(valuesDict, DISTANCE_SCALE_MAP,
 			DISTANCE_SCALE_PLUGIN_PREF, distance_scale.Miles())
+		if self.pluginPrefs['region'] != valuesDict['region']:
+			self.log.debug("changing region from %s to %s" % (self.pluginPrefs['region'], valuesDict['region']))
+
+			# restart the plugin to use different server
+			plugin = indigo.server.getPlugin("com.drjason.nissanleaf")
+			plugin.restart(waitUntilDone=False)
+
 		return True
 
 
 	def runConcurrentThread(self):
 		try:
 			while True:
+				if not self.connection.logged_in:
+					self.login()
+
 				for l in self.leaves:
 					l.request_status()
 
