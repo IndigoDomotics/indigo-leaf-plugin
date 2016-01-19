@@ -1,7 +1,6 @@
 import urllib2
 from xml.dom import minidom
 import logging
-from response import CarwingsError
 
 BASE_URL = {
     "US" : "https://nissan-na-smartphone-biz.viaaq.com/aqPortal/smartphoneProxy",
@@ -9,6 +8,9 @@ BASE_URL = {
 }
 
 log = logging.getLogger("pycarwings")
+
+class CarwingsError(Exception):
+    pass
 
 class Connection(object):
     """Maintains a connection to CARWINGS, refreshing it when needed"""

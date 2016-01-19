@@ -2,9 +2,6 @@ import iso8601
 from xml.dom import minidom
 from datetime import timedelta
 
-class CarwingsError(Exception):
-    pass
-
 class XMLResponse(object):
     def get_first(self, node, tag):
         found = node.getElementsByTagNameNS('*', tag)
@@ -45,12 +42,9 @@ class LatestBatteryStatus(XMLResponse):
         self.parse(data)
 
     def parse(self, data):
-        error = self.get_first(data, 'ErrorCode')
-        if not error:
-            latest_battery_status = self.get_first(data, 'SmartphoneLatestBatteryStatusResponse')
-            self.latest_battery_status = SmartphoneLatestBatteryStatusResponse(latest_battery_status)
-        else:
-            raise CarwingsError(data)
+        latest_battery_status = self.get_first(data, 'SmartphoneLatestBatteryStatusResponse')
+
+        self.latest_battery_status = SmartphoneLatestBatteryStatusResponse(latest_battery_status)
 
 class SmartphoneUserInfoType(XMLResponse):
     def __init__(self, data):
@@ -67,7 +61,7 @@ class SmartphoneLatestBatteryStatusResponse(XMLResponse):
 
     def parse(self, data):
         status = self.get_first(data, 'BatteryStatusRecords')
-
+        
         self.operation_result = self.get_value(status, 'OperationResult')
         self.operation_date_and_time = self.get_date_value(status, 'OperationDateAndTime')
         self.battery_charging_status = self.get_value(status, 'BatteryChargingStatus')
@@ -82,7 +76,7 @@ class SmartphoneLatestBatteryStatusResponse(XMLResponse):
             #parse time required to full
             hour_required_to_full = int(self.get_value(time_required_to_full, 'HourRequiredToFull'))
             minutes_required_to_full = int(self.get_value(time_required_to_full, 'MinutesRequiredToFull'))
-
+        
             self.time_required_to_full = timedelta(hours=hour_required_to_full,
                                                    minutes=minutes_required_to_full)
         else:
@@ -93,12 +87,13 @@ class SmartphoneLatestBatteryStatusResponse(XMLResponse):
             #parse time required to full
             hour_required_to_full_L2 = int(self.get_value(time_required_to_full_L2, 'HourRequiredToFull'))
             minutes_required_to_full_L2 = int(self.get_value(time_required_to_full_L2, 'MinutesRequiredToFull'))
-
+        
             self.time_required_to_full_L2 = timedelta(hours=hour_required_to_full_L2,
                                                    minutes=minutes_required_to_full_L2)
         else:
             self.time_required_to_full_L2 = None
 
         self.notification_date_and_time = self.get_date_value(status, 'NotificationDateAndTime')
-
+        
         self.last_battery_status_check_execution_time = self.get_date_value(data, 'lastBatteryStatusCheckExecutionTime')
+
