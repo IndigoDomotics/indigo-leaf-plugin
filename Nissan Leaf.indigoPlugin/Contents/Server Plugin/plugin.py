@@ -10,10 +10,12 @@ import pycarwings.vehicleservice
 
 import indigo_leaf
 
+from pycarwings.response import CarwingsError
+
 import distance_scale
 
 
-DEBUG=False
+DEBUG=True
 DISTANCE_SCALE_PLUGIN_PREF="distanceUnit"
 
 DISTANCE_SCALE_MAP = {
@@ -92,6 +94,9 @@ class Plugin(indigo.PluginBase):
 		self.userservice = pycarwings.userservice.UserService(self.connection)
 		self.vehicleservice = pycarwings.vehicleservice.VehicleService(self.connection)
 
+#		self.connection.logged_in = True
+
+
 	def shutdown(self):
 		self.debugLog(u"shutdown called")
 
@@ -117,7 +122,7 @@ class Plugin(indigo.PluginBase):
 			self.login()
 
 		leaf = indigo_leaf.IndigoLeaf(dev, self)
-		leaf.update_status()
+#		leaf.update_status()
 		self.leaves.append(leaf)
 
 	def deviceStopComm(self, dev):
@@ -146,7 +151,13 @@ class Plugin(indigo.PluginBase):
 					self.login()
 
 				for l in self.leaves:
-					l.request_status()
+					try:
+						l.request_status()
+					except CarwingsError:
+						# hmm; try logging in again and repeating?
+						self.log.warn("error requesting status; logging in again and retrying")
+						self.login()
+						l.request_status()
 
 				self.sleep(20)
 

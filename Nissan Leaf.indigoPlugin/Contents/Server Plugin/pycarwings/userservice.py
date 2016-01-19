@@ -9,7 +9,7 @@ from response import *
 class UserService(object):
 
     SERVICE_PATH = '/userService'
-    
+
     def __init__(self, connection):
         self.connection = connection
 
@@ -26,8 +26,8 @@ class UserService(object):
                    'SmartphoneType': 'IPHONE'},
              'SmartphoneOperationType': 'SmartphoneLatestBatteryStatusRequest'}
 
-        xml = dict_to_xml(d, 
-                          'ns2:SmartphoneLoginWithAdditionalOperationRequest', 
+        xml = dict_to_xml(d,
+                          'ns2:SmartphoneLoginWithAdditionalOperationRequest',
                           namespaces)
 
         result = self.connection.post_xml(self.SERVICE_PATH, xml)
@@ -49,12 +49,9 @@ class UserService(object):
              'SmartphoneOperationType': 'SmartphoneLatestBatteryStatusRequest',
              'changeVehicle': 'false'}
 
-        xml = dict_to_xml(d, 
+        xml = dict_to_xml(d,
                           'ns2:SmartphoneGetVehicleInfoRequest',
                           namespaces)
 
         result = self.connection.post_xml(self.SERVICE_PATH, xml)
         return LatestBatteryStatus(result)
-
-    
-        
