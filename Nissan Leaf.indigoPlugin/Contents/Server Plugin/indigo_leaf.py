@@ -56,19 +56,29 @@ class IndigoLeaf:
 		if IndigoLeaf.connection.logged_in:
 			vin = status.user_info.vin
 			log.info( "logged in, vin: %s, nickname: %s" % (vin, status.user_info.nickname))
-			vins = [(vin, status.user_info.nickname)]
+			IndigoLeaf.vins = [(vin, status.user_info.nickname)]
 		else:
 			log.error( "Log in invalid, please try again")
 
 	@staticmethod
 	def get_vins():
-		return vins
+		return IndigoLeaf.vins
 
 	def __init__(self, dev, plugin):
 		self.dev = dev
-		self.vin = dev.pluginProps["address"]
+		if "address" in dev.pluginProps:
+			# version 0.0.3
+			self.vin = dev.pluginProps["address"]
+		elif "vin" in dev.pluginProps:
+			# version 0.0.1
+			self.vin = dev.pluginProps["vin"]
+		else:
+			log.error("couldn't find a property with the VIN: %s" % dev.pluginProps)
+
 
 	def start_charging(self):
+		if not self.connection.logged_in:
+			self.login()
 		try:
 			self.vehicleservice.start_charge(self.vin)
 		except CarwingsError:
@@ -77,6 +87,8 @@ class IndigoLeaf:
 			self.vehicleservice.start_charge(self.vin)
 
 	def start_climate_control(self):
+		if not self.connection.logged_in:
+			self.login()
 		try:
 			self.vehicleservice.start_ac_now(self.vin)
 		except CarwingsError:
@@ -85,6 +97,8 @@ class IndigoLeaf:
 			self.vehicleservice.start_ac_now(self.vin)
 
 	def request_status(self):
+		if not self.connection.logged_in:
+			self.login()
 		log.info("requesting status for %s" % self.vin)
 		try:
 			self.vehicleservice.request_status(self.vin)
@@ -94,6 +108,8 @@ class IndigoLeaf:
 			self.vehicleservice.request_status(self.vin)
 
 	def update_status(self):
+		if not self.connection.logged_in:
+			self.login()
 		log.info("updating status for %s" % self.vin)
 		try:
 			status = self.userservice.get_latest_status(self.vin)

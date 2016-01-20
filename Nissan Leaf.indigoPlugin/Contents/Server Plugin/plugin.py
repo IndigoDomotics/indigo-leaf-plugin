@@ -3,8 +3,14 @@
 
 import indigo
 import logging
+from urllib2 import HTTPError
 
 from indigo_leaf import IndigoLeaf
+
+DEBUGGING_ENABLED_MAP = {
+	"y" : True,
+	"n" : False
+}
 
 class IndigoLoggingHandler(logging.Handler):
 	def __init__(self, p):
@@ -59,15 +65,28 @@ class Plugin(indigo.PluginBase):
 		self.leaves[0].start_climate_control()
 
 	def startup(self):
-		self.update_logging(bool("y" == self.pluginPrefs["debuggingEnabled"]))
+		if "debuggingEnabled" not in self.pluginPrefs:
+			# added in 0.0.3
+			self.pluginPrefs["debuggingEnabled"] = "n"
+
+		self.update_logging(DEBUGGING_ENABLED_MAP[self.pluginPrefs["debuggingEnabled"]])
 
 		self.log.debug(u"startup called")
+
 		if 'region' not in self.pluginPrefs:
+			# added in 0.0.2
 			self.pluginPrefs['region'] = 'US'
 
-		IndigoLeaf.use_distance_scale(self.pluginPrefs["distanceUnit"])
+		if 'distanceUnit' not in self.pluginPrefs:
+			# added in ... 0.0.2?
+			self.pluginPrefs['distanceUnit'] = 'k'
+
+		IndigoLeaf.use_distance_scale(self.pluginPrefs['distanceUnit'])
 		IndigoLeaf.setup(self.pluginPrefs['username'], self.pluginPrefs['password'], self.pluginPrefs['region'])
-		IndigoLeaf.login()
+		try:
+			IndigoLeaf.login()
+		except HTTPError as e:
+			self.log.error("HTTP error logging in to Nissan's servers; will try again later (%s)" % e)
 
 	def shutdown(self):
 		self.log.debug(u"shutdown called")
@@ -105,14 +124,17 @@ class Plugin(indigo.PluginBase):
 	def runConcurrentThread(self):
 		try:
 			while True:
+				try:
+					for l in self.leaves:
+						l.request_status()
 
-				for l in self.leaves:
-					l.request_status()
+					self.sleep(20)
 
-				self.sleep(20)
+					for l in self.leaves:
+						l.update_status()
 
-				for l in self.leaves:
-					l.update_status()
+				except HTTPError as e:
+					self.log.error("HTTP error connecting to Nissan's servers; will try again later (%s)" % e)
 
 				self.sleep(900)
 
