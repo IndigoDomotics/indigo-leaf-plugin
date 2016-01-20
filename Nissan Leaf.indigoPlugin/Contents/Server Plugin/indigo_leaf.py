@@ -5,7 +5,7 @@ import logging
 import pycarwings.connection
 import pycarwings.userservice
 import pycarwings.vehicleservice
-from pycarwings.response import CarwingsError
+from pycarwings.connection import CarwingsError
 
 import distance_scale
 

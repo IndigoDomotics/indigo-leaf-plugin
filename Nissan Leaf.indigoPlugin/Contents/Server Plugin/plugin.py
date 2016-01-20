@@ -6,10 +6,6 @@ import logging
 
 from indigo_leaf import IndigoLeaf
 
-from pycarwings.response import CarwingsError
-
-DEBUG=True
-
 class IndigoLoggingHandler(logging.Handler):
 	def __init__(self, p):
 		 logging.Handler.__init__(self)
@@ -27,7 +23,6 @@ class Plugin(indigo.PluginBase):
 
 	def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
 		indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
-		self.debug = DEBUG
 
 		logHandler = IndigoLoggingHandler(self)
 
@@ -35,18 +30,20 @@ class Plugin(indigo.PluginBase):
 		logging.getLogger("pycarwings").addHandler(logHandler)
 		self.log.addHandler(logHandler)
 
-		self.update_logging()
-
 		self.leaves = []
 
 	def __del__(self):
 		indigo.PluginBase.__del__(self)
 
-	def update_logging(self):
-		if DEBUG:
+	def update_logging(self, is_debug):
+		if is_debug:
+			self.debug = True
 			self.log.setLevel(logging.DEBUG)
 			logging.getLogger("pycarwings").setLevel(logging.DEBUG)
+			self.log.debug("debug logging enabled")
 		else:
+			self.log.debug("debug logging disabled")
+			self.debug=False
 			self.log.setLevel(logging.INFO)
 			logging.getLogger("pycarwings").setLevel(logging.INFO)
 
@@ -62,7 +59,9 @@ class Plugin(indigo.PluginBase):
 		self.leaves[0].start_climate_control()
 
 	def startup(self):
-		self.debugLog(u"startup called")
+		self.update_logging(bool("y" == self.pluginPrefs["debuggingEnabled"]))
+
+		self.log.debug(u"startup called")
 		if 'region' not in self.pluginPrefs:
 			self.pluginPrefs['region'] = 'US'
 
@@ -71,7 +70,7 @@ class Plugin(indigo.PluginBase):
 		IndigoLeaf.login()
 
 	def shutdown(self):
-		self.debugLog(u"shutdown called")
+		self.log.debug(u"shutdown called")
 
 	def deviceStartComm(self, dev):
 		newProps = dev.pluginProps
@@ -89,14 +88,10 @@ class Plugin(indigo.PluginBase):
 		]
 
 	def validatePrefsConfigUi(self, valuesDict):
+		self.log.debug("validatePrefsConfigUi: %s" % valuesDict)
 		IndigoLeaf.use_distance_scale(valuesDict["distanceUnit"])
 
-		if valuesDict['debuggingEnabled'] and "y" == valuesDict['debuggingEnabled']:
-			DEBUG = True
-		else:
-			DEBUG = False
-
-		self.update_logging()
+		self.update_logging(bool(valuesDict['debuggingEnabled'] and "y" == valuesDict['debuggingEnabled']))
 
 		IndigoLeaf.use_distance_scale(valuesDict["distanceUnit"])
 
