@@ -3,22 +3,13 @@
 
 import indigo
 import logging
+from urllib2 import HTTPError
 
-import pycarwings.connection
-import pycarwings.userservice
-import pycarwings.vehicleservice
+from indigo_leaf import IndigoLeaf
 
-import indigo_leaf
-
-import distance_scale
-
-
-DEBUG=False
-DISTANCE_SCALE_PLUGIN_PREF="distanceUnit"
-
-DISTANCE_SCALE_MAP = {
-	"k" : distance_scale.Kilometers(),
-	"m" : distance_scale.Miles()
+DEBUGGING_ENABLED_MAP = {
+	"y" : True,
+	"n" : False
 }
 
 class IndigoLoggingHandler(logging.Handler):
@@ -34,17 +25,10 @@ class IndigoLoggingHandler(logging.Handler):
 		else:
 			self.plugin.errorLog(record.getMessage())
 
-def mapped_plugin_pref_value(pluginPrefs, map, key, default):
-	if key in pluginPrefs:
-		return map[pluginPrefs[key][0]]
-	else:
-		return default
-
 class Plugin(indigo.PluginBase):
 
 	def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
 		indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
-		self.debug = DEBUG
 
 		logHandler = IndigoLoggingHandler(self)
 
@@ -52,28 +36,25 @@ class Plugin(indigo.PluginBase):
 		logging.getLogger("pycarwings").addHandler(logHandler)
 		self.log.addHandler(logHandler)
 
-		if DEBUG:
-			self.log.setLevel(logging.DEBUG)
-			logging.getLogger("pycarwings").setLevel(logging.DEBUG)
-		else:
-			self.log.setLevel(logging.INFO)
-			logging.getLogger("pycarwings").setLevel(logging.INFO)
-
 		self.leaves = []
-
-		indigo_leaf.distance_format = mapped_plugin_pref_value(pluginPrefs, DISTANCE_SCALE_MAP,
-			DISTANCE_SCALE_PLUGIN_PREF, distance_scale.Miles())
-
 
 	def __del__(self):
 		indigo.PluginBase.__del__(self)
 
-	def get_vins(self, filter="", valuesDict=None, typeId="", targetId=0):
-		if self.connection.logged_in:
-			return self.vins
+	def update_logging(self, is_debug):
+		if is_debug:
+			self.debug = True
+			self.log.setLevel(logging.DEBUG)
+			logging.getLogger("pycarwings").setLevel(logging.DEBUG)
+			self.log.debug("debug logging enabled")
+		else:
+			self.log.debug("debug logging disabled")
+			self.debug=False
+			self.log.setLevel(logging.INFO)
+			logging.getLogger("pycarwings").setLevel(logging.INFO)
 
-		self.log.error("not logged in")
-		return []
+	def get_vins(self, filter="", valuesDict=None, typeId="", targetId=0):
+		return IndigoLeaf.get_vins()
 
 	def start_charging(self, action):
 		self.log.debug("charging action: %s" % action)
@@ -84,39 +65,38 @@ class Plugin(indigo.PluginBase):
 		self.leaves[0].start_climate_control()
 
 	def startup(self):
-		self.debugLog(u"startup called")
+		if "debuggingEnabled" not in self.pluginPrefs:
+			# added in 0.0.3
+			self.pluginPrefs["debuggingEnabled"] = "n"
+
+		self.update_logging(DEBUGGING_ENABLED_MAP[self.pluginPrefs["debuggingEnabled"]])
+
+		self.log.debug(u"startup called")
+
 		if 'region' not in self.pluginPrefs:
+			# added in 0.0.2
 			self.pluginPrefs['region'] = 'US'
 
-		self.connection = pycarwings.connection.Connection(self.pluginPrefs['username'], self.pluginPrefs['password'], self.pluginPrefs['region'])
-		self.userservice = pycarwings.userservice.UserService(self.connection)
-		self.vehicleservice = pycarwings.vehicleservice.VehicleService(self.connection)
+		if 'distanceUnit' not in self.pluginPrefs:
+			# added in ... 0.0.2?
+			self.pluginPrefs['distanceUnit'] = 'k'
+
+		IndigoLeaf.use_distance_scale(self.pluginPrefs['distanceUnit'])
+		IndigoLeaf.setup(self.pluginPrefs['username'], self.pluginPrefs['password'], self.pluginPrefs['region'])
+		try:
+			IndigoLeaf.login()
+		except HTTPError as e:
+			self.log.error("HTTP error logging in to Nissan's servers; will try again later (%s)" % e)
 
 	def shutdown(self):
-		self.debugLog(u"shutdown called")
-
-	def login(self):
-		self.log.debug("logging in to %s region" % self.connection.region)
-		self.log.debug("url: %s" % self.connection.BASE_URL)
-		status = self.userservice.login_and_get_status()
-		if self.connection.logged_in:
-			vin = status.user_info.vin
-			self.log.info( "logged in, vin: %s, nickname: %s" % (vin, status.user_info.nickname))
-			self.vins = [(vin, status.user_info.nickname)]
-		else:
-			self.log.error( "Log in invalid, please try again")
-
+		self.log.debug(u"shutdown called")
 
 	def deviceStartComm(self, dev):
-#		self.debugLog('deviceStartComm: %s' % dev)
 		newProps = dev.pluginProps
 		newProps["SupportsBatteryLevel"] = True
 		dev.replacePluginPropsOnServer(newProps)
 
-		if not self.connection.logged_in:
-			self.login()
-
-		leaf = indigo_leaf.IndigoLeaf(dev, self)
+		leaf = IndigoLeaf(dev, self)
 		leaf.update_status()
 		self.leaves.append(leaf)
 
@@ -127,14 +107,16 @@ class Plugin(indigo.PluginBase):
 		]
 
 	def validatePrefsConfigUi(self, valuesDict):
-		indigo_leaf.distance_format = mapped_plugin_pref_value(valuesDict, DISTANCE_SCALE_MAP,
-			DISTANCE_SCALE_PLUGIN_PREF, distance_scale.Miles())
-		if self.pluginPrefs['region'] != valuesDict['region']:
-			self.log.debug("changing region from %s to %s" % (self.pluginPrefs['region'], valuesDict['region']))
+		self.log.debug("validatePrefsConfigUi: %s" % valuesDict)
+		IndigoLeaf.use_distance_scale(valuesDict["distanceUnit"])
 
-			# restart the plugin to use different server
-			plugin = indigo.server.getPlugin("com.drjason.nissanleaf")
-			plugin.restart(waitUntilDone=False)
+		self.update_logging(bool(valuesDict['debuggingEnabled'] and "y" == valuesDict['debuggingEnabled']))
+
+		IndigoLeaf.use_distance_scale(valuesDict["distanceUnit"])
+
+		if (self.pluginPrefs['region'] != valuesDict['region']) or (self.pluginPrefs['username'] != valuesDict['username']) or (self.pluginPrefs['password'] != valuesDict['password']):
+			IndigoLeaf.setup(valuesDict['username'], valuesDict['password'], valuesDict['region'])
+			IndigoLeaf.login()
 
 		return True
 
@@ -142,16 +124,17 @@ class Plugin(indigo.PluginBase):
 	def runConcurrentThread(self):
 		try:
 			while True:
-				if not self.connection.logged_in:
-					self.login()
+				try:
+					for l in self.leaves:
+						l.request_status()
 
-				for l in self.leaves:
-					l.request_status()
+					self.sleep(20)
 
-				self.sleep(20)
+					for l in self.leaves:
+						l.update_status()
 
-				for l in self.leaves:
-					l.update_status()
+				except HTTPError as e:
+					self.log.error("HTTP error connecting to Nissan's servers; will try again later (%s)" % e)
 
 				self.sleep(900)
 
