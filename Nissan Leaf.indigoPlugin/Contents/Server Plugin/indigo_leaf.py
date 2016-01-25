@@ -22,7 +22,8 @@ CHARGING_VALUE_MAP = {
 
 DISTANCE_SCALE_MAP = {
 	"k" : distance_scale.Kilometers(),
-	"m" : distance_scale.Miles()
+	"m" : distance_scale.Miles(),
+	"f" : distance_scale.Furlongs()
 }
 
 log = logging.getLogger('indigo.nissanleaf.plugin')
@@ -66,6 +67,8 @@ class IndigoLeaf:
 
 	def __init__(self, dev, plugin):
 		self.dev = dev
+		self.notification_date_and_time = None
+
 		if "address" in dev.pluginProps:
 			# version 0.0.3
 			self.vin = dev.pluginProps["address"]
@@ -92,9 +95,27 @@ class IndigoLeaf:
 		try:
 			self.vehicleservice.start_ac_now(self.vin)
 		except CarwingsError:
-			log.warn("error starting climate contro; logging in again and retrying")
+			log.warn("error starting climate control; logging in again and retrying")
 			self.login()
 			self.vehicleservice.start_ac_now(self.vin)
+
+	def request_and_update_status(self, sleep_method):
+		self.request_status()
+
+		log.info("sleeping for 60s to give nissan's server time to retrieve updated status from vehicle")
+		sleep_method(60)
+
+		for i in range(2):
+			if self.update_status():
+				break
+			log.info("sleeping for an additional 120s to give nissan's server more time to retrieve updated status from vehicle")
+			sleep_method(120)
+		else:
+			log.warn("nissan did not return an updated status after five minutes of waiting; giving up this time")
+			return False
+
+		return True
+
 
 	def request_status(self):
 		if not self.connection.logged_in:
@@ -107,6 +128,8 @@ class IndigoLeaf:
 			self.login()
 			self.vehicleservice.request_status(self.vin)
 
+	# Returns True if retrieved status had a different time stamp than last
+	# time we updated; False otherwise.
 	def update_status(self):
 		if not self.connection.logged_in:
 			self.login()
@@ -121,6 +144,11 @@ class IndigoLeaf:
 		log.debug("status: %s" % yaml.dump(status))
 
 	 	lbs = status.latest_battery_status
+
+		if self.notification_date_and_time and (self.notification_date_and_time == lbs.notification_date_and_time):
+			log.info("returned status has the same timestamp as our last check; ignoring it")
+			return False
+
 		self.dev.updateStateOnServer(key="batteryCapacity", value=lbs.battery_capacity)
 		self.dev.updateStateOnServer(key="batteryRemainingCharge", value=lbs.battery_remaining_amount)
 
@@ -185,3 +213,6 @@ class IndigoLeaf:
 			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevelLow)
 
 		log.info("finished updating status for %s" % self.vin)
+
+		self.notification_date_and_time = lbs.notification_date_and_time
+		return True

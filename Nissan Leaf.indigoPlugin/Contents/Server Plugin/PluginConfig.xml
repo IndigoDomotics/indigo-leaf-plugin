@@ -23,6 +23,7 @@
 		<List>
 			<Option value="k">kilometer</Option>
 			<Option value="m">mile</Option>
+			<Option value="f">furlong</Option>
 		</List>
 	</Field>
 
