@@ -24,3 +24,9 @@ class Miles(DistanceScale):
 		return float(reading) * 0.000621371
 	def suffix(self):
 		return u"mi"
+
+class Furlongs(DistanceScale):
+	def convert(self, reading):
+		return float(reading) * 0.000621371 * 8.0
+	def suffix(self):
+		return u"fur"

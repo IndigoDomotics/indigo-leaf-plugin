@@ -22,7 +22,8 @@ CHARGING_VALUE_MAP = {
 
 DISTANCE_SCALE_MAP = {
 	"k" : distance_scale.Kilometers(),
-	"m" : distance_scale.Miles()
+	"m" : distance_scale.Miles(),
+	"f" : distance_scale.Furlongs()
 }
 
 log = logging.getLogger('indigo.nissanleaf.plugin')
