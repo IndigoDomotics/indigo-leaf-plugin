@@ -125,13 +125,9 @@ class Plugin(indigo.PluginBase):
 		try:
 			while True:
 				try:
-					for l in self.leaves:
-						l.request_status()
-
-					self.sleep(20)
 
 					for l in self.leaves:
-						l.update_status()
+						l.request_and_update_status(self.sleep)
 
 				except HTTPError as e:
 					self.log.error("HTTP error connecting to Nissan's servers; will try again later (%s)" % e)
