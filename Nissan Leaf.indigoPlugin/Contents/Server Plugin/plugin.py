@@ -132,7 +132,7 @@ class Plugin(indigo.PluginBase):
 				except HTTPError as e:
 					self.log.error("HTTP error connecting to Nissan's servers; will try again later (%s)" % e)
 
-				self.sleep(900)
+				self.sleep(840)
 
 		except self.StopThread:
 			pass	# Optionally catch the StopThread exception and do any needed cleanup.
