@@ -10,7 +10,7 @@ from response import *
 
 class VehicleService(object):
     """
-    Contains commands that are issued to the car
+    Contains commands that are issued to the car 
     to initiate certain actions. Use UserService to retrieve
     action status, however.
     """
@@ -44,11 +44,11 @@ class VehicleService(object):
     def request_status(self, vin):
         self._require_login()
 
-        d = {'ns3:BatteryStatusCheckRequest':
+        d = {'ns3:BatteryStatusCheckRequest': 
               {'ns3:VehicleServiceRequestHeader': self._vinheader(vin)}}
-
+                 
         return self._post(d, 'ns4:SmartphoneRemoteBatteryStatusCheckRequest')
-
+    
     def start_charge(self, vin):
         self._require_login()
 
@@ -76,7 +76,7 @@ class VehicleService(object):
     def cancel_ac_now(self, vin):
         self._require_login()
 
-        d = {'ns3:ACRemoteOffRequest':
+        d = {'ns3:ACRemoteOffRequest': 
               {'ns3:VehicleServiceRequestHeader': self._vinheader(vin)}}
 
         return self._post(d, 'ns4:SmartphoneRemoteACOffRequest')

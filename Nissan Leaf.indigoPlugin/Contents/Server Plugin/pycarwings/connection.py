@@ -28,10 +28,10 @@ class Connection(object):
 
     def set_region(self, region):
         self.BASE_URL = BASE_URL[region]
-        self.region = region
-
         if self.logged_in and self.region != region:
             self.logged_in = False
+        self.region = region
+
 
     def post_xml(self, service, xml_data, suppress_response=False):
         data = xml_data.toxml()
