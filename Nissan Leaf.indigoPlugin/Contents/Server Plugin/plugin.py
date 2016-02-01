@@ -92,12 +92,18 @@ class Plugin(indigo.PluginBase):
 		self.log.debug(u"shutdown called")
 
 	def deviceStartComm(self, dev):
+		dev.stateListOrDisplayStateIdChanged() # in case any states added/removed after plugin upgrade
+		
 		newProps = dev.pluginProps
 		newProps["SupportsBatteryLevel"] = True
 		dev.replacePluginPropsOnServer(newProps)
 
 		leaf = IndigoLeaf(dev, self)
-		leaf.update_status()
+		try:
+			leaf.update_status()
+		except HTTPError as e:
+			self.log.error("HTTP error connecting to Nissan's servers; will try again later (%s)" % e)
+
 		self.leaves.append(leaf)
 
 	def deviceStopComm(self, dev):
