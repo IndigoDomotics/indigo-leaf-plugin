@@ -2,10 +2,7 @@ import yaml
 import indigo
 import logging
 
-import pycarwings.connection
-import pycarwings.userservice
-import pycarwings.vehicleservice
-from pycarwings.connection import CarwingsError
+import pycarwings2
 
 import distance_scale
 
@@ -15,8 +12,8 @@ CONNECTED_VALUE_MAP = {
 }
 
 CHARGING_VALUE_MAP = {
-	'NORMAL_CHARGING': True,
-	'CHARGING': True, # is this one valid? I made it up.
+	'NORMAL_CHARGING': True, # still valid?
+	'220V': True,
 	'NOT_CHARGING'  : False
 }
 
@@ -31,43 +28,46 @@ log = logging.getLogger('indigo.nissanleaf.plugin')
 class IndigoLeaf:
 
 	# class variables
-	connection = None
-	userservice = None
-	vehicleservice = None
+	session = None
 	distance_format = distance_scale.Miles()
 
 	vins = []
 
 	@staticmethod
 	def setup(username, password, region):
-		IndigoLeaf.connection = pycarwings.connection.Connection(username, password, region)
-		IndigoLeaf.userservice = pycarwings.userservice.UserService(IndigoLeaf.connection)
-		IndigoLeaf.vehicleservice = pycarwings.vehicleservice.VehicleService(IndigoLeaf.connection)
+		log.debug("indigoleaf setup; username: %s" % username)
+		IndigoLeaf.session = pycarwings2.pycarwings2.Session(username, password) # region TBD
+		log.debug("indigoleaf session: %s" % IndigoLeaf.session)
 
 	@staticmethod
 	def use_distance_scale(s):
 		log.debug("using distance scale '%s'" % s)
 		IndigoLeaf.distance_format = DISTANCE_SCALE_MAP[s]
 
-	@staticmethod
-	def login():
-		log.debug("logging in to %s region" % IndigoLeaf.connection.region)
-		log.debug("url: %s" % IndigoLeaf.connection.BASE_URL)
-		status = IndigoLeaf.userservice.login_and_get_status()
-		if IndigoLeaf.connection.logged_in:
-			vin = status.user_info.vin
-			log.info( "logged in, vin: %s, nickname: %s" % (vin, status.user_info.nickname))
-			IndigoLeaf.vins = [(vin, status.user_info.nickname)]
-		else:
-			log.error( "Log in invalid, please try again")
+	def login(self):
+		log.debug("logging in to carwings")
+		IndigoLeaf.session.connect()
+#		status = IndigoLeaf.userservice.login_and_get_status()
+#		if IndigoLeaf.connection.logged_in:
+#			vin = status.user_info.vin
+#			log.info( "logged in, vin: %s, nickname: %s" % (vin, status.user_info.nickname))
+#			IndigoLeaf.vins = [(vin, status.user_info.nickname)]
+#		else:
+#			log.error( "Log in invalid, please try again")
+		l = IndigoLeaf.session.get_leaf()
+		self.leaf = l
+		IndigoLeaf.vins = [(l.vin, l.nickname)]
+		log.info("logged in, vin: %s, nickname: %s" % (l.vin, l.nickname))
+		log.debug("self.leaf is: %s" % self.leaf)
 
 	@staticmethod
 	def get_vins():
 		return IndigoLeaf.vins
 
 	def __init__(self, dev, plugin):
+		log.debug("IndigoLeaf object init")
 		self.dev = dev
-		self.notification_date_and_time = None
+		self.leaf = None
 
 		if "address" in dev.pluginProps:
 			# version 0.0.3
@@ -80,33 +80,36 @@ class IndigoLeaf:
 
 
 	def start_charging(self):
-		if not self.connection.logged_in:
-			self.login()
-		try:
-			self.vehicleservice.start_charge(self.vin)
-		except CarwingsError:
-			log.warn("error starting charging; logging in again and retrying")
-			self.login()
-			self.vehicleservice.start_charge(self.vin)
+		pass
+#		if not self.connection.logged_in:
+#			self.login()
+#		try:
+#			self.vehicleservice.start_charge(self.vin)
+#		except CarwingsError:
+#			log.warn("error starting charging; logging in again and retrying")
+#			self.login()
+#			self.vehicleservice.start_charge(self.vin)
 
 	def start_climate_control(self):
-		if not self.connection.logged_in:
-			self.login()
-		try:
-			self.vehicleservice.start_ac_now(self.vin)
-		except CarwingsError:
-			log.warn("error starting climate control; logging in again and retrying")
-			self.login()
-			self.vehicleservice.start_ac_now(self.vin)
+		pass
+#		if not self.connection.logged_in:
+#			self.login()
+#		try:
+#			self.vehicleservice.start_ac_now(self.vin)
+#		except CarwingsError:
+#			log.warn("error starting climate control; logging in again and retrying")
+#			self.login()
+#			self.vehicleservice.start_ac_now(self.vin)
 
 	def request_and_update_status(self, sleep_method):
-		self.request_status()
+		log.debug("request and update status")
+		result_key= self.request_status()
 
-		log.info("sleeping for 60s to give nissan's server time to retrieve updated status from vehicle")
-		sleep_method(60)
+		log.info("sleeping for 30s to give nissan's server time to retrieve updated status from vehicle")
+		sleep_method(30)
 
 		for i in range(2):
-			if self.update_status():
+			if self.update_status(result_key):
 				break
 			log.info("sleeping for an additional 120s to give nissan's server more time to retrieve updated status from vehicle")
 			sleep_method(120)
@@ -118,75 +121,69 @@ class IndigoLeaf:
 
 
 	def request_status(self):
-		if not self.connection.logged_in:
-			self.login()
 		log.info("requesting status for %s" % self.vin)
-		try:
-			self.vehicleservice.request_status(self.vin)
-		except CarwingsError:
-			log.warn("error requesting status; logging in again and retrying")
+		if not self.leaf:
+			log.info("not yet logged in; doing that first")
 			self.login()
-			self.vehicleservice.request_status(self.vin)
+		try:
+			result_key = self.leaf.request_update()
+		except pycarwings2.pycarwings2.CarwingsError as e:
+			log.warn("error requesting status; logging in again and retrying")
+			raise e
+#			self.login()
+#			self.vehicleservice.request_status(self.vin)
+		return result_key
 
 	# Returns True if retrieved status had a different time stamp than last
 	# time we updated; False otherwise.
-	def update_status(self):
-		if not self.connection.logged_in:
-			self.login()
+	def update_status(self, result_key):
+#		if not self.connection.logged_in:
+#			self.login()
 		log.info("updating status for %s" % self.vin)
 		try:
-			status = self.userservice.get_latest_status(self.vin)
-		except CarwingsError:
+			status = self.leaf.get_status_from_update(result_key)
+		except pycarwings2.pycarwings2.CarwingsError:
 			log.warn("error getting latest status; logging in again and retrying")
 			self.login()
-			status = self.userservice.get_latest_status(self.vin)
+			status = self.leaf.get_status_from_update(result_key)
 
 		log.debug("status: %s" % yaml.dump(status))
 
-	 	lbs = status.latest_battery_status
-
-		if self.notification_date_and_time and (self.notification_date_and_time == lbs.notification_date_and_time):
-			log.info("returned status has the same timestamp as our last check; ignoring it")
+		if not status:
+			log.info("no status check result yet")
 			return False
 
-		self.dev.updateStateOnServer(key="batteryCapacity", value=lbs.battery_capacity)
-		self.dev.updateStateOnServer(key="batteryRemainingCharge", value=lbs.battery_remaining_amount)
+		self.dev.updateStateOnServer(key="batteryCapacity", value=status["batteryCapacity"])
+		self.dev.updateStateOnServer(key="batteryRemainingCharge", value=status["batteryDegradation"])
 
 		try:
-			is_connected = CONNECTED_VALUE_MAP[lbs.plugin_state]
+			is_connected = CONNECTED_VALUE_MAP[status["pluginState"]]
 		except KeyError:
-			log.error(u"Unknown connected state: '%s'" % lbs.plugin_state)
+			log.error(u"Unknown connected state: '%s'" % status["pluginState"])
 			is_connected = True # probably
 		self.dev.updateStateOnServer(key="connected", value=is_connected)
 
-		IndigoLeaf.distance_format.report(self.dev, "cruisingRangeACOff", lbs.cruising_range_ac_off)
-		IndigoLeaf.distance_format.report(self.dev, "cruisingRangeACOn", lbs.cruising_range_ac_on)
+		IndigoLeaf.distance_format.report(self.dev, "cruisingRangeACOff", status["cruisingRangeAcOff"])
+		IndigoLeaf.distance_format.report(self.dev, "cruisingRangeACOn", status["cruisingRangeAcOn"])
 
-		self.dev.updateStateOnServer(key="chargingStatus", value=lbs.battery_charging_status)
+		self.dev.updateStateOnServer(key="chargingStatus", value=status["chargeMode"])
 		try:
-			is_charging = CHARGING_VALUE_MAP[lbs.battery_charging_status]
+			is_charging = CHARGING_VALUE_MAP[status["chargeMode"]]
 		except KeyError:
-			log.error(u"Unknown charging state: '%s'" % lbs.battery_charging_status)
+			log.error(u"Unknown charging state: '%s'" % status["chargeMode"])
 			is_charging = True # probably
 		self.dev.updateStateOnServer(key="charging", value=is_charging)
 
-		# may be None if we're fast charging(?)
-		if lbs.time_required_to_full:
-			trickle_time_m = float(lbs.time_required_to_full.days * 1440) + (float(lbs.time_required_to_full.seconds) / 60)
-			self.dev.updateStateOnServer(key="timeToFullTrickle", value=trickle_time_m, decimalPlaces=0,
-										uiValue=str(lbs.time_required_to_full))
-		else:
-			self.dev.updateStateOnServer(key="timeToFullTrickle", value=-1, decimalPlaces=0, uiValue="-")
+		time_to_full = self._time_remaining(status["timeRequiredToFull"])
+		self.dev.updateStateOnServer(key="timeToFullTrickle", value=time_to_full, decimalPlaces=0,
+									uiValue=str(time_to_full)+"m")
 
-		# may be None if we're trickle charging
-		if lbs.time_required_to_full_L2:
-			l2_time_m = float(lbs.time_required_to_full_L2.days * 1440) + (float(lbs.time_required_to_full_L2.seconds) / 60)
-			self.dev.updateStateOnServer(key="timeToFullL2", value=l2_time_m, decimalPlaces=0,
-										uiValue=str(lbs.time_required_to_full_L2))
-		else:
-			self.dev.updateStateOnServer(key="timeToFullL2", value=-1, decimalPlaces=0, uiValue="-")
+		time_to_full_l2 = self._time_remaining(status["timeRequiredToFull200"])
+		self.dev.updateStateOnServer(key="timeToFullL2", value=time_to_full_l2, decimalPlaces=0,
+									uiValue=str(time_to_full_l2)+"m")
 
-		pct = 100 * float(lbs.battery_remaining_amount) / float(lbs.battery_capacity)
+
+		pct = 100 * float(status["batteryDegradation"]) / float(status["batteryCapacity"])
 		self.dev.updateStateOnServer(key="batteryLevel", value=pct, decimalPlaces=0,
 									uiValue=u"%s%%" % "{0:.0f}".format(pct))
 
@@ -214,5 +211,13 @@ class IndigoLeaf:
 
 		log.info("finished updating status for %s" % self.vin)
 
-		self.notification_date_and_time = lbs.notification_date_and_time
 		return True
+
+	def _time_remaining(self, t):
+		minutes = float(0)
+		if t:
+			if t["hours"]:
+				minutes = float(60*t["hours"])
+			if t["minutes"]:
+				minutes += t["minutes"]
+		return minutes
