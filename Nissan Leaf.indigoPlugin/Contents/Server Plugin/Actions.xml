@@ -17,5 +17,9 @@
 		<Name>Start Climate Control</Name>
 		<CallbackMethod>start_climate_control</CallbackMethod>
 	</Action>
+	<Action id="stopClimateControl" deviceFilter="self">
+		<Name>Stop Climate Control</Name>
+		<CallbackMethod>stop_climate_control</CallbackMethod>
+	</Action>
 
 </Actions>

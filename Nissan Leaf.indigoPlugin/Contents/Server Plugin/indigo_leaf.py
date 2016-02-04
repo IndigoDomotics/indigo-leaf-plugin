@@ -80,26 +80,31 @@ class IndigoLeaf:
 
 
 	def start_charging(self):
-		pass
-#		if not self.connection.logged_in:
-#			self.login()
-#		try:
-#			self.vehicleservice.start_charge(self.vin)
-#		except CarwingsError:
-#			log.warn("error starting charging; logging in again and retrying")
-#			self.login()
-#			self.vehicleservice.start_charge(self.vin)
+		if not self.leaf:
+			self.login()
+		try:
+			self.leaf.start_charging()
+		except pycarwings2.pycarwings2.CarwingsError as e:
+			log.warn("error starting charging")
+			raise e
 
 	def start_climate_control(self):
-		pass
-#		if not self.connection.logged_in:
-#			self.login()
-#		try:
-#			self.vehicleservice.start_ac_now(self.vin)
-#		except CarwingsError:
-#			log.warn("error starting climate control; logging in again and retrying")
-#			self.login()
-#			self.vehicleservice.start_ac_now(self.vin)
+		if not self.leaf:
+			self.login()
+		try:
+			self.leaf.start_climate_control()
+		except pycarwings2.pycarwings2.CarwingsError as e:
+			log.warn("error starting climate control")
+			raise e
+
+	def stop_climate_control(self):
+		if not self.leaf:
+			self.login()
+		try:
+			self.leaf.stop_climate_control()
+		except pycarwings2.pycarwings2.CarwingsError as e:
+			log.warn("error stopping climate control")
+			raise e
 
 	def request_and_update_status(self, sleep_method):
 		log.debug("request and update status")
@@ -128,7 +133,7 @@ class IndigoLeaf:
 		try:
 			result_key = self.leaf.request_update()
 		except pycarwings2.pycarwings2.CarwingsError as e:
-			log.warn("error requesting status; logging in again and retrying")
+			log.warn("error requesting status")
 			raise e
 #			self.login()
 #			self.vehicleservice.request_status(self.vin)

@@ -63,8 +63,12 @@ class Plugin(indigo.PluginBase):
 		self.leaves[0].start_charging()
 
 	def start_climate_control(self, action):
-		self.log.debug("climate control action: %s" % action)
+		self.log.debug("start climate control action: %s" % action)
 		self.leaves[0].start_climate_control()
+
+	def stop_climate_control(self, action):
+		self.log.debug("stop climate control action: %s" % action)
+		self.leaves[0].stop_climate_control()
 
 	def startup(self):
 		if "debuggingEnabled" not in self.pluginPrefs:
