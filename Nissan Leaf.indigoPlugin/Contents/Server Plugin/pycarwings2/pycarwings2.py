@@ -1,7 +1,22 @@
+# Copyright 2016 Jason Horne
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import requests
 from requests import Request, Session, RequestException
 import json
 import logging
+from datetime import date
 
 BASE_URL = "https://gdcportalgw.its-mo.com/orchestration_1111/gdc/"
 
@@ -30,7 +45,7 @@ class Session(object):
 			response = sess.send(req)
 			log.info('Response HTTP Status Code: {status_code}'.format(
 				status_code=response.status_code))
-			log.info('Response HTTP Response Body: {content}'.format(
+			log.debug('Response HTTP Response Body: {content}'.format(
 				content=response.content))
 		except RequestException:
 			log.warning('HTTP Request failed')
@@ -45,7 +60,6 @@ class Session(object):
 
 
 	def connect(self):
-
 		response = self._request("UserLoginRequest.php", {
 			"RegionCode": self.region_code,
 			"UserId": self.username,
@@ -73,7 +87,12 @@ class Session(object):
 
 		self.leaf = Leaf(self, vin, nickname)
 
+		self.logged_in = True
+
 	def get_leaf(self, index=0):
+		if not self.logged_in:
+			self.connect()
+
 		return self.leaf
 
 
@@ -111,7 +130,71 @@ class Leaf:
 		return None
 
 	def start_climate_control(self):
-		pass
+		response = self.session._request("ACRemoteRequest.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+		})
+		return response["resultKey"]
+
+	# response will have:
+	#	"hvacStatus": "ON" or "OFF"
+	#   "operationResult": "START_BATTERY" or ...?
+	#   "acContinueTime": e.g. "15"
+	def get_start_climate_control_result(self, result_key):
+		response = self.session._request("ACRemoteResult.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+			"UserId": self.session.gdc_user_id, # this userid is the 'gdc' userid
+			"resultKey": result_key,
+		})
+		if response["responseFlag"] == "1":
+			return response
+
+		return None
+
+	def stop_climate_control(self):
+		response = self.session._request("ACRemoteOffRequest.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+		})
+		return response["resultKey"]
+
+	# response will have:
+	#	"hvacStatus": "ON" or "OFF"
+	def get_stop_climate_control_result(self, result_key):
+		response = self.session._request("ACRemoteOffResult.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+			"UserId": self.session.gdc_user_id, # this userid is the 'gdc' userid
+			"resultKey": result_key,
+		})
+		if response["responseFlag"] == "1":
+			return response
+
+		return None
 
 	def start_charging(self):
-		pass
+		response = self.session._request("BatteryRemoteChargingRequest.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+			"ExecuteTime": date.today().isoformat()
+		})
+		if response["status"] == "success":
+			return True
+
+		return False
