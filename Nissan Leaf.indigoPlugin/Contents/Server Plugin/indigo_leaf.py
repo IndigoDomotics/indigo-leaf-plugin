@@ -108,18 +108,16 @@ class IndigoLeaf:
 
 	def request_and_update_status(self, sleep_method):
 		log.debug("request and update status")
-		result_key= self.request_status()
-
-		log.info("sleeping for 30s to give nissan's server time to retrieve updated status from vehicle")
-		sleep_method(30)
-
-		for i in range(2):
+		result_key = self.request_status()
+		total_wait = 0
+		for i in [30, 120, 120, 150, 180]:
+			log.info("sleeping for %ss to give nissan's server time to retrieve updated status from vehicle" % i)
+			sleep_method(i)
+			total_wait += i
 			if self.update_status(result_key):
 				break
-			log.info("sleeping for an additional 120s to give nissan's server more time to retrieve updated status from vehicle")
-			sleep_method(120)
 		else:
-			log.warn("nissan did not return an updated status after five minutes of waiting; giving up this time")
+			log.warn("nissan did not return an updated status after %ss of waiting; giving up this time" % total_wait)
 			return False
 
 		return True
