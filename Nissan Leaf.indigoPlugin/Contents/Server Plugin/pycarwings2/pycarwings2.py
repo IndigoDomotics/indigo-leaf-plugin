@@ -12,11 +12,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+There are three asynchronous operations in this API, paired with three follow-up
+"status check" methods.
+
+	request_update           -> get_status_from_update
+	start_climate_control    -> get_start_climate_control_result
+	stop_climate_control     -> get_stop_climate_control_result
+
+The asynchronous operations immediately return a 'result key', which
+is then supplied as a parameter for the corresponding status check method.
+
+Here's an example response from an asynchronous operation, showing the result key:
+
+	{
+		"status":200,
+		"message":"success",
+		"userId":"user@domain.com",
+		"vin":"1ABCDEFG2HIJKLM3N",
+		"resultKey":"12345678901234567890123456789012345678901234567890"
+	}
+
+The status check methods return a JSON blob containing a 'responseFlag' property.
+If the communications are complete, the response flag value will be the string "1";
+otherwise the value will be the string "0". You just gotta poll until you get a
+"1" back. Note that the official app seems to poll every 20 seconds.
+
+Example 'no response yet' result from a status check invocation:
+
+	{
+		"status":200,
+		"message":"success",
+		"responseFlag":"0"
+	}
+
+When the responseFlag does come back as "1", there will also be an "operationResult"
+property. If there was an error communicating with the vehicle, it seems that
+this field will contain the value "ELECTRIC_WAVE_ABNORMAL". Odd.
+
+"""
+
 import requests
 from requests import Request, Session, RequestException
 import json
 import logging
 from datetime import date
+from responses import *
 
 BASE_URL = "https://gdcportalgw.its-mo.com/orchestration_1111/gdc/"
 
@@ -28,16 +69,16 @@ class CarwingsError(Exception):
 class Session(object):
 	"""Maintains a connection to CARWINGS, refreshing it when needed"""
 
-	def __init__(self, username, password):
+	def __init__(self, username, password, region="NNA"):
 		self.username = username
 		self.password = password
-		self.region_code = "NNA"
+		self.region_code = region
 		self.logged_in = False
 
 	def _request(self, endpoint, params):
 		req = Request('GET', url=BASE_URL + endpoint, params=params).prepare()
 
-		log.info("invoking carwings API: %s" % req.url)
+		log.debug("invoking carwings API: %s" % req.url)
 		log.debug("params: %s" % json.dumps(params, sort_keys=True, indent=3, separators=(',', ': ')))
 
 		try:
@@ -58,7 +99,6 @@ class Session(object):
 
 		return j
 
-
 	def connect(self):
 		response = self._request("UserLoginRequest.php", {
 			"RegionCode": self.region_code,
@@ -66,28 +106,24 @@ class Session(object):
 			"Password": self.password,
 		})
 
-		profile = response["vehicle"]["profile"]
-		self.gdc_user_id = profile["gdcUserId"]
+		ret = CarwingsLoginResponse(response)
+
+		self.gdc_user_id = ret.gdc_user_id
 		log.debug("gdc_user_id: %s" % self.gdc_user_id)
-
-		self.dcm_id = profile["dcmId"]
+		self.dcm_id = ret.dcm_id
 		log.debug("dcm_id: %s" % self.dcm_id)
-
-
-		customer_info = response["CustomerInfo"]
-		self.tz = customer_info["Timezone"]
+		self.tz = ret.tz
 		log.debug("tz: %s" % self.tz)
-		self.language = customer_info["Language"]
+		self.language = ret.language
 		log.debug("language: %s" % self.language)
+		log.debug("vin: %s" % ret.vin)
+		log.debug("nickname: %s" % ret.nickname)
 
-		vin = profile["vin"]
-		log.debug("vin: %s" % vin)
-
-		nickname = response["VehicleInfoList"]["vehicleInfo"][0]["nickname"]
-
-		self.leaf = Leaf(self, vin, nickname)
+		self.leaf = Leaf(self, ret.leafs[0]["vin"], ret.leafs[0]["nickname"])
 
 		self.logged_in = True
+
+		return ret
 
 	def get_leaf(self, index=0):
 		if not self.logged_in:
@@ -125,7 +161,7 @@ class Leaf:
 		})
 		# responseFlag will be "1" if a response has been returned; "0" otherwise
 		if response["responseFlag"] == "1":
-			return response
+			return CarwingsBatteryStatusResponse(response)
 
 		return None
 
@@ -139,10 +175,6 @@ class Leaf:
 		})
 		return response["resultKey"]
 
-	# response will have:
-	#	"hvacStatus": "ON" or "OFF"
-	#   "operationResult": "START_BATTERY" or ...?
-	#   "acContinueTime": e.g. "15"
 	def get_start_climate_control_result(self, result_key):
 		response = self.session._request("ACRemoteResult.php", {
 			"RegionCode": self.session.region_code,
@@ -154,7 +186,13 @@ class Leaf:
 			"resultKey": result_key,
 		})
 		if response["responseFlag"] == "1":
-			return response
+
+			# seems to indicate that the vehicle cannot be reached
+			if response["operationResult"] == "ELECTRIC_WAVE_ABNORMAL":
+				log.warning("could not establish communications with vehicle")
+				raise CarwingsError("could not establish communications with vehicle")
+
+			return CarwingsStartClimateControlResponse(response)
 
 		return None
 
@@ -168,8 +206,6 @@ class Leaf:
 		})
 		return response["resultKey"]
 
-	# response will have:
-	#	"hvacStatus": "ON" or "OFF"
 	def get_stop_climate_control_result(self, result_key):
 		response = self.session._request("ACRemoteOffResult.php", {
 			"RegionCode": self.session.region_code,
@@ -181,10 +217,16 @@ class Leaf:
 			"resultKey": result_key,
 		})
 		if response["responseFlag"] == "1":
-			return response
+			return CarwingsStopClimateControlResponse(response)
 
 		return None
 
+	"""
+	{
+		"status":200,
+		"message":"success"
+	}
+	"""
 	def start_charging(self):
 		response = self.session._request("BatteryRemoteChargingRequest.php", {
 			"RegionCode": self.session.region_code,

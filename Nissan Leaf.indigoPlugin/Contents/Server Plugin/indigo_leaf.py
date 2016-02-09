@@ -6,17 +6,6 @@ import pycarwings2
 
 import distance_scale
 
-CONNECTED_VALUE_MAP = {
-	'CONNECTED': True,
-	'NOT_CONNECTED'  : False
-}
-
-CHARGING_VALUE_MAP = {
-	'NORMAL_CHARGING': True, # still valid?
-	'220V': True,
-	'NOT_CHARGING'  : False
-}
-
 DISTANCE_SCALE_MAP = {
 	"k" : distance_scale.Kilometers(),
 	"m" : distance_scale.Miles(),
@@ -24,6 +13,9 @@ DISTANCE_SCALE_MAP = {
 }
 
 log = logging.getLogger('indigo.nissanleaf.plugin')
+
+def _timedelta_to_minutes(td):
+	return (td.days * 24 * 60) + (td.seconds / 60)
 
 class IndigoLeaf:
 
@@ -156,56 +148,48 @@ class IndigoLeaf:
 			log.info("no status check result yet")
 			return False
 
-		self.dev.updateStateOnServer(key="batteryCapacity", value=status["batteryCapacity"])
-		self.dev.updateStateOnServer(key="batteryRemainingCharge", value=status["batteryDegradation"])
+		self.dev.updateStateOnServer(key="batteryCapacity", value=status.battery_capacity)
+		self.dev.updateStateOnServer(key="batteryRemainingCharge", value=status.battery_degradation)
 
-		try:
-			is_connected = CONNECTED_VALUE_MAP[status["pluginState"]]
-		except KeyError:
-			log.error(u"Unknown connected state: '%s'" % status["pluginState"])
-			is_connected = True # probably
-		self.dev.updateStateOnServer(key="connected", value=is_connected)
+		self.dev.updateStateOnServer(key="connected", value=status.is_connected)
 
-		IndigoLeaf.distance_format.report(self.dev, "cruisingRangeACOff", status["cruisingRangeAcOff"])
-		IndigoLeaf.distance_format.report(self.dev, "cruisingRangeACOn", status["cruisingRangeAcOn"])
+		IndigoLeaf.distance_format.report(self.dev, "cruisingRangeACOff", status.cruising_range_ac_off_km)
+		IndigoLeaf.distance_format.report(self.dev, "cruisingRangeACOn", status.cruising_range_ac_on_km)
 
-		self.dev.updateStateOnServer(key="chargingStatus", value=status["chargeMode"])
-		try:
-			is_charging = CHARGING_VALUE_MAP[status["chargeMode"]]
-		except KeyError:
-			log.error(u"Unknown charging state: '%s'" % status["chargeMode"])
-			is_charging = True # probably
-		self.dev.updateStateOnServer(key="charging", value=is_charging)
+		self.dev.updateStateOnServer(key="chargingStatus", value=status.charging_status)
+		self.dev.updateStateOnServer(key="charging", value=status.is_charging)
 
-		time_to_full = self._time_remaining(status["timeRequiredToFull"])
+		time_to_full = _timedelta_to_minutes(status.time_to_full_trickle)
 		self.dev.updateStateOnServer(key="timeToFullTrickle", value=time_to_full, decimalPlaces=0,
 									uiValue=str(time_to_full)+"m")
 
-		time_to_full_l2 = self._time_remaining(status["timeRequiredToFull200"])
+		time_to_full_l2 = _timedelta_to_minutes(status.time_to_full_l2)
 		self.dev.updateStateOnServer(key="timeToFullL2", value=time_to_full_l2, decimalPlaces=0,
 									uiValue=str(time_to_full_l2)+"m")
 
+		time_to_full_l2_6kw = _timedelta_to_minutes(status.time_to_full_l2_6kw)
+		self.dev.updateStateOnServer(key="timeToFullL2_6kw", value=time_to_full_l2_6kw, decimalPlaces=0,
+									uiValue=str(time_to_full_l2_6kw)+"m")
 
-		pct = 100 * float(status["batteryDegradation"]) / float(status["batteryCapacity"])
-		self.dev.updateStateOnServer(key="batteryLevel", value=pct, decimalPlaces=0,
-									uiValue=u"%s%%" % "{0:.0f}".format(pct))
+		self.dev.updateStateOnServer(key="batteryLevel", value=status.battery_percent, decimalPlaces=0,
+									uiValue=u"%s%%" % "{0:.0f}".format(status.battery_percent))
 
-		if is_charging:
+		if status.is_charging:
 			log.debug("using 'charger on' icon")
 			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryChargerOn)
-		elif is_connected:
+		elif status.is_connected:
 			log.debug("using 'charger off' icon")
 			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryCharger)
-		elif pct >= 87.5:
+		elif status.battery_percent >= 87.5:
 			log.debug("using 'battery high' icon")
 			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevelHigh)
-		elif pct >= 62.5:
+		elif status.battery_percent >= 62.5:
 			log.debug("using 'battery 75' icon")
 			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel75)
-		elif pct > 37.5:
+		elif status.battery_percent > 37.5:
 			log.debug("using 'battery 50' icon")
 			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel50)
-		elif pct > 15:
+		elif status.battery_percent > 15:
 			log.debug("using 'battery 25' icon")
 			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel25)
 		else:
@@ -215,12 +199,3 @@ class IndigoLeaf:
 		log.info("finished updating status for %s" % self.vin)
 
 		return True
-
-	def _time_remaining(self, t):
-		minutes = float(0)
-		if t:
-			if t["hours"]:
-				minutes = float(60*t["hours"])
-			if t["minutes"]:
-				minutes += t["minutes"]
-		return minutes

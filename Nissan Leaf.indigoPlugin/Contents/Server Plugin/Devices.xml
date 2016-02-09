@@ -76,6 +76,11 @@
 				<TriggerLabel>Time to Full Charge (L2)</TriggerLabel>
 				<ControlPageLabel>Time to Full Charge (L2)</ControlPageLabel>
 			</State>
+			<State id="timeToFullL2_6kw" readonly="true">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Time to Full Charge (L2 6kW)</TriggerLabel>
+				<ControlPageLabel>Time to Full Charge (L2 6kW)</ControlPageLabel>
+			</State>
 			<State id="climateControl" readonly="true">
 				<ValueType boolType="OnOff">Boolean</ValueType>
 				<TriggerLabel>Climate Control</TriggerLabel>
