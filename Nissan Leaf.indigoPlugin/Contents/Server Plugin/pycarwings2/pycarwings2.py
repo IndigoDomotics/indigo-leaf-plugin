@@ -119,7 +119,7 @@ class Session(object):
 		log.debug("vin: %s" % ret.vin)
 		log.debug("nickname: %s" % ret.nickname)
 
-		self.leaf = Leaf(self, ret.leafs[0]["vin"], ret.leafs[0]["nickname"])
+		self.leaf = Leaf(self, ret.leafs[0])
 
 		self.logged_in = True
 
@@ -133,11 +133,12 @@ class Session(object):
 
 
 class Leaf:
-	def __init__(self, session, vin, nickname):
+	def __init__(self, session, params):
 		self.session = session
-		self.vin = vin
-		self.nickname = nickname
-		log.debug("created leaf %s/%s" % (vin, nickname))
+		self.vin = params["vin"]
+		self.nickname = params["nickname"]
+		self.bound_time = params["bound_time"]
+		log.debug("created leaf %s/%s" % (self.vin, self.nickname))
 
 	def request_update(self):
 		response = self.session._request("BatteryStatusCheckRequest.php", {
@@ -221,6 +222,58 @@ class Leaf:
 
 		return None
 
+	# execute time example: "2016-02-09 17:24"
+	# I believe this time is specified in GMT, despite the "tz" parameter
+	# TODO: change parameter to python datetime object(?)
+	def schedule_climate_control(self, execute_time):
+		response = self.session._request("ACRemoteNewRequest.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+			"ExecuteTime": execute_time,
+		})
+		return (response["message"] == "success")
+
+	# execute time example: "2016-02-09 17:24"
+	# I believe this time is specified in GMT, despite the "tz" parameter
+	# TODO: change parameter to python datetime object(?)
+	def update_scheduled_climate_control(self, execute_time):
+		response = self.session._request("ACRemoteUpdateRequest.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+			"ExecuteTime": execute_time,
+		})
+		return (response["message"] == "success")
+
+	def cancel_scheduled_climate_control(self):
+		response = self.session._request("ACRemoteCancelRequest.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+		})
+		return (response["message"] == "success")
+
+	def get_climate_control_schedule(self):
+		response = self.session._request("GetScheduledACRemoteRequest.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+		})
+		if (response["message"] == "success"):
+			if response["ExecuteTime"] != "":
+				return CarwingsClimateControlScheduleResponse(response)
+
+		return None
+
 	"""
 	{
 		"status":200,
@@ -240,3 +293,45 @@ class Leaf:
 			return True
 
 		return False
+
+	def get_driving_analysis(self):
+		response = self.session._request("DriveAnalysisBasicScreenRequestEx.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+		})
+		if response["message"] == "success":
+			return CarwingsDrivingAnalysisResponse(response)
+
+		return None
+
+	def get_latest_battery_status(self):
+		response = self.session._request("BatteryStatusRecordsRequest.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+			"TimeFrom": self.bound_time
+		})
+		if response["message"] == "success":
+			return CarwingsLatestBatteryStatusResponse(response)
+
+		return None
+
+	# target_month format: "YYYYMM" e.g. "201602"
+	def get_electric_rate_simulation(self, target_month):
+		response = self.session._request("PriceSimulatorDetailInfoRequest.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+			"TargetMonth": target_month
+		})
+		if response["message"] == "success":
+			return CarwingsElectricRateSimulationResponse(response)
+
+		return None
