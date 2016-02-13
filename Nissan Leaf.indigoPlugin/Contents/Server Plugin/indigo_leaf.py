@@ -17,6 +17,16 @@ log = logging.getLogger('indigo.nissanleaf.plugin')
 def _timedelta_to_minutes(td):
 	return (td.days * 24 * 60) + (td.seconds / 60)
 
+def _minutes_to_dms(x):
+	if x == 0:
+		return "0m";
+
+	(days, mins) = divmod(x, 24 * 60)
+	(hrs,  mins) = divmod(mins, 60)
+	return ( (str(days) + "d" if (days > 0) else "") +
+		     (str(hrs)  + "h" if (hrs  > 0) else "") +
+		     (str(mins) + "m" if (mins > 0) else "") )
+
 class IndigoLeaf:
 
 	# class variables
@@ -163,15 +173,15 @@ class IndigoLeaf:
 
 		time_to_full = _timedelta_to_minutes(status2.time_to_full_trickle)
 		self.dev.updateStateOnServer(key="timeToFullTrickle", value=time_to_full, decimalPlaces=0,
-									uiValue=str(time_to_full)+"m")
+									uiValue=_minutes_to_dms(time_to_full))
 
 		time_to_full_l2 = _timedelta_to_minutes(status2.time_to_full_l2)
 		self.dev.updateStateOnServer(key="timeToFullL2", value=time_to_full_l2, decimalPlaces=0,
-									uiValue=str(time_to_full_l2)+"m")
+									uiValue=_minutes_to_dms(time_to_full_l2))
 
 		time_to_full_l2_6kw = _timedelta_to_minutes(status2.time_to_full_l2_6kw)
 		self.dev.updateStateOnServer(key="timeToFullL2_6kw", value=time_to_full_l2_6kw, decimalPlaces=0,
-									uiValue=str(time_to_full_l2_6kw)+"m")
+									uiValue=_minutes_to_dms(time_to_full_l2_6kw))
 
 		self.dev.updateStateOnServer(key="batteryLevel", value=status.battery_percent, decimalPlaces=0,
 									uiValue=u"%s%%" % "{0:.0f}".format(status.battery_percent))
