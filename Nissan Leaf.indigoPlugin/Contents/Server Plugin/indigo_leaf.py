@@ -171,17 +171,18 @@ class IndigoLeaf:
 
 		status2 = self.leaf.get_latest_battery_status()
 
-		time_to_full = _timedelta_to_minutes(status2.time_to_full_trickle)
-		self.dev.updateStateOnServer(key="timeToFullTrickle", value=time_to_full, decimalPlaces=0,
-									uiValue=_minutes_to_dms(time_to_full))
-
-		time_to_full_l2 = _timedelta_to_minutes(status2.time_to_full_l2)
-		self.dev.updateStateOnServer(key="timeToFullL2", value=time_to_full_l2, decimalPlaces=0,
-									uiValue=_minutes_to_dms(time_to_full_l2))
-
-		time_to_full_l2_6kw = _timedelta_to_minutes(status2.time_to_full_l2_6kw)
-		self.dev.updateStateOnServer(key="timeToFullL2_6kw", value=time_to_full_l2_6kw, decimalPlaces=0,
-									uiValue=_minutes_to_dms(time_to_full_l2_6kw))
+		if status2.time_to_full_trickle:
+			time_to_full = _timedelta_to_minutes(status2.time_to_full_trickle)
+			self.dev.updateStateOnServer(key="timeToFullTrickle", value=time_to_full, decimalPlaces=0,
+										uiValue=_minutes_to_dms(time_to_full))
+		if status2.time_to_full_l2:
+			time_to_full_l2 = _timedelta_to_minutes(status2.time_to_full_l2)
+			self.dev.updateStateOnServer(key="timeToFullL2", value=time_to_full_l2, decimalPlaces=0,
+										uiValue=_minutes_to_dms(time_to_full_l2))
+		if status2.time_to_full_l2_6kw:
+			time_to_full_l2_6kw = _timedelta_to_minutes(status2.time_to_full_l2_6kw)
+			self.dev.updateStateOnServer(key="timeToFullL2_6kw", value=time_to_full_l2_6kw, decimalPlaces=0,
+										uiValue=_minutes_to_dms(time_to_full_l2_6kw))
 
 		self.dev.updateStateOnServer(key="batteryLevel", value=status.battery_percent, decimalPlaces=0,
 									uiValue=u"%s%%" % "{0:.0f}".format(status.battery_percent))
