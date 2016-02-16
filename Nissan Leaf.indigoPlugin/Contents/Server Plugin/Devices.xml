@@ -51,6 +51,11 @@
 				<TriggerLabel>Charging Status</TriggerLabel>
 				<ControlPageLabel>Charging Status</ControlPageLabel>
 			</State>
+			<State id="pluginState" readonly="true">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Plugin State</TriggerLabel>
+				<ControlPageLabel>Plugin State</ControlPageLabel>
+			</State>
 			<State id="connected" readonly="true">
 				<ValueType booltype="YesNo">Boolean</ValueType>
 				<TriggerLabel>Connected</TriggerLabel>

@@ -169,6 +169,8 @@ class IndigoLeaf:
 		self.dev.updateStateOnServer(key="chargingStatus", value=status.charging_status)
 		self.dev.updateStateOnServer(key="charging", value=status.is_charging)
 
+		self.dev.updateStateOnServer(key="pluginState", value=status.plugin_state)
+
 		status2 = self.leaf.get_latest_battery_status()
 
 		if status2.time_to_full_trickle:
