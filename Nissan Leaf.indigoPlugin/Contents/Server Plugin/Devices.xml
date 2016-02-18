@@ -46,6 +46,11 @@
 				<TriggerLabel>Charging</TriggerLabel>
 				<ControlPageLabel>Charging</ControlPageLabel>
 			</State>
+			<State id="quickCharging" readonly="true">
+				<ValueType booltype="YesNo">Boolean</ValueType>
+				<TriggerLabel>Quick Charging</TriggerLabel>
+				<ControlPageLabel>Quick Charging</ControlPageLabel>
+			</State>
 			<State id="chargingStatus" readonly="true">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Charging Status</TriggerLabel>
@@ -60,6 +65,11 @@
 				<ValueType booltype="YesNo">Boolean</ValueType>
 				<TriggerLabel>Connected</TriggerLabel>
 				<ControlPageLabel>Connected</ControlPageLabel>
+			</State>
+			<State id="connectedQuickCharger" readonly="true">
+				<ValueType booltype="YesNo">Boolean</ValueType>
+				<TriggerLabel>Connected to Quick Charger</TriggerLabel>
+				<ControlPageLabel>Connected to Quick Charger</ControlPageLabel>
 			</State>
 			<State id="cruisingRangeACOff" readonly="true">
 				<ValueType>Number</ValueType>

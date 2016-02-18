@@ -37,8 +37,8 @@ class IndigoLeaf:
 
 	@staticmethod
 	def setup(username, password, region):
-		log.debug("indigoleaf setup; username: %s" % username)
-		IndigoLeaf.session = pycarwings2.pycarwings2.Session(username, password) # region TBD
+		log.debug("indigoleaf setup; username: %s, region: %s" % (username, region))
+		IndigoLeaf.session = pycarwings2.pycarwings2.Session(username, password, region)
 		log.debug("indigoleaf session: %s" % IndigoLeaf.session)
 
 	@staticmethod
@@ -162,12 +162,14 @@ class IndigoLeaf:
 		self.dev.updateStateOnServer(key="batteryRemainingCharge", value=status.battery_degradation)
 
 		self.dev.updateStateOnServer(key="connected", value=status.is_connected)
+		self.dev.updateStateOnServer(key="connectedQuickCharger", value=status.is_connected_to_quick_charger)
 
 		IndigoLeaf.distance_format.report(self.dev, "cruisingRangeACOff", status.cruising_range_ac_off_km)
 		IndigoLeaf.distance_format.report(self.dev, "cruisingRangeACOn", status.cruising_range_ac_on_km)
 
 		self.dev.updateStateOnServer(key="chargingStatus", value=status.charging_status)
 		self.dev.updateStateOnServer(key="charging", value=status.is_charging)
+		self.dev.updateStateOnServer(key="quickCharging", value=status.is_quick_charging)
 
 		self.dev.updateStateOnServer(key="pluginState", value=status.plugin_state)
 

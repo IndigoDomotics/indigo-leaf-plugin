@@ -13,6 +13,17 @@
 # limitations under the License.
 
 """
+When logging in, you must specify a geographic 'region' parameter. The only
+known values for this are as follows:
+
+	NNA  : USA
+	NE   : Europe
+	NCI  : Canada
+
+Information about Nissan on the web (e.g. http://nissannews.com/en-US/nissan/usa/pages/executive-bios)
+suggests others (this page suggests NMEX for Mexico, NLAC for Latin America) but
+these have not been confirmed.
+
 There are three asynchronous operations in this API, paired with three follow-up
 "status check" methods.
 
@@ -187,12 +198,6 @@ class Leaf:
 			"resultKey": result_key,
 		})
 		if response["responseFlag"] == "1":
-
-			# seems to indicate that the vehicle cannot be reached
-			if response["operationResult"] == "ELECTRIC_WAVE_ABNORMAL":
-				log.warning("could not establish communications with vehicle")
-				raise CarwingsError("could not establish communications with vehicle")
-
 			return CarwingsStartClimateControlResponse(response)
 
 		return None
