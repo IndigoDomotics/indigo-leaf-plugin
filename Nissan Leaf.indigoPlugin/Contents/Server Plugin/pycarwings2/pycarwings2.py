@@ -19,6 +19,8 @@ known values for this are as follows:
 	NNA  : USA
 	NE   : Europe
 	NCI  : Canada
+	NMA  : Australia
+	NML  : Japan
 
 Information about Nissan on the web (e.g. http://nissannews.com/en-US/nissan/usa/pages/executive-bios)
 suggests others (this page suggests NMEX for Mexico, NLAC for Latin America) but
