@@ -46,15 +46,30 @@
 				<TriggerLabel>Charging</TriggerLabel>
 				<ControlPageLabel>Charging</ControlPageLabel>
 			</State>
+			<State id="quickCharging" readonly="true">
+				<ValueType booltype="YesNo">Boolean</ValueType>
+				<TriggerLabel>Quick Charging</TriggerLabel>
+				<ControlPageLabel>Quick Charging</ControlPageLabel>
+			</State>
 			<State id="chargingStatus" readonly="true">
 				<ValueType>String</ValueType>
 				<TriggerLabel>Charging Status</TriggerLabel>
 				<ControlPageLabel>Charging Status</ControlPageLabel>
 			</State>
+			<State id="pluginState" readonly="true">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Plugin State</TriggerLabel>
+				<ControlPageLabel>Plugin State</ControlPageLabel>
+			</State>
 			<State id="connected" readonly="true">
 				<ValueType booltype="YesNo">Boolean</ValueType>
 				<TriggerLabel>Connected</TriggerLabel>
 				<ControlPageLabel>Connected</ControlPageLabel>
+			</State>
+			<State id="connectedQuickCharger" readonly="true">
+				<ValueType booltype="YesNo">Boolean</ValueType>
+				<TriggerLabel>Connected to Quick Charger</TriggerLabel>
+				<ControlPageLabel>Connected to Quick Charger</ControlPageLabel>
 			</State>
 			<State id="cruisingRangeACOff" readonly="true">
 				<ValueType>Number</ValueType>
@@ -75,6 +90,11 @@
 				<ValueType>Number</ValueType>
 				<TriggerLabel>Time to Full Charge (L2)</TriggerLabel>
 				<ControlPageLabel>Time to Full Charge (L2)</ControlPageLabel>
+			</State>
+			<State id="timeToFullL2_6kw" readonly="true">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Time to Full Charge (L2 6kW)</TriggerLabel>
+				<ControlPageLabel>Time to Full Charge (L2 6kW)</ControlPageLabel>
 			</State>
 			<State id="climateControl" readonly="true">
 				<ValueType boolType="OnOff">Boolean</ValueType>

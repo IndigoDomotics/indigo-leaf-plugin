@@ -11,8 +11,11 @@
 	<Field id ="region" type="menu">
 		<Label>Region:</Label>
 		<List>
-			<Option value="US">US</Option>
-			<Option value="EU">EU</Option>
+			<Option value="NMA">Australia</Option>
+			<Option value="NCI">Canada</Option>
+			<Option value="NE">Europe</Option>
+			<Option value="NML">Japan</Option>
+			<Option value="NNA">USA</Option>
 		</List>
 	</Field>
 
