@@ -227,6 +227,10 @@ class IndigoLeaf:
 			log.debug("using 'battery low' icon")
 			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevelLow)
 
+		status3 = self.leaf.get_latest_hvac_status()
+		self.dev.updateStateOnServer(key="climateControl", value=status3.is_hvac_running)
+
+
 		log.info("finished updating status for %s" % self.vin)
 
 		return True
