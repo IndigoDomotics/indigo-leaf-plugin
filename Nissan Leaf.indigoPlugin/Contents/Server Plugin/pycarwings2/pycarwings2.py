@@ -328,6 +328,20 @@ class Leaf:
 
 		return None
 
+	def get_latest_hvac_status(self):
+		response = self.session._request("RemoteACRecordsRequest.php", {
+			"RegionCode": self.session.region_code,
+			"lg": self.session.language,
+			"DCMID": self.session.dcm_id,
+			"VIN": self.vin,
+			"tz": self.session.tz,
+			"TimeFrom": self.bound_time
+		})
+		if response["message"] == "success":
+			return CarwingsLatestClimateControlStatusResponse(response)
+
+		return None
+
 	# target_month format: "YYYYMM" e.g. "201602"
 	def get_electric_rate_simulation(self, target_month):
 		response = self.session._request("PriceSimulatorDetailInfoRequest.php", {
