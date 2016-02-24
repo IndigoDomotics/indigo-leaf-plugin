@@ -81,7 +81,7 @@ class Plugin(indigo.PluginBase):
 
 		if 'region' not in self.pluginPrefs:
 			# added in 0.0.2
-			self.pluginPrefs['region'] = 'US'
+			self.pluginPrefs['region'] = 'NNA'
 
 		if 'distanceUnit' not in self.pluginPrefs:
 			# added in ... 0.0.2?
