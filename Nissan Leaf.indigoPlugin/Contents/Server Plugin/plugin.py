@@ -6,7 +6,7 @@ import logging
 from urllib2 import HTTPError
 
 from indigo_leaf import IndigoLeaf
-from pycarwings.connection import CarwingsError
+from pycarwings2.pycarwings2 import CarwingsError
 
 
 DEBUGGING_ENABLED_MAP = {
@@ -35,7 +35,7 @@ class Plugin(indigo.PluginBase):
 		logHandler = IndigoLoggingHandler(self)
 
 		self.log = logging.getLogger('indigo.nissanleaf.plugin')
-		logging.getLogger("pycarwings").addHandler(logHandler)
+		logging.getLogger("pycarwings2").addHandler(logHandler)
 		self.log.addHandler(logHandler)
 
 		self.leaves = []
@@ -47,13 +47,13 @@ class Plugin(indigo.PluginBase):
 		if is_debug:
 			self.debug = True
 			self.log.setLevel(logging.DEBUG)
-			logging.getLogger("pycarwings").setLevel(logging.DEBUG)
+			logging.getLogger("pycarwings2").setLevel(logging.DEBUG)
 			self.log.debug("debug logging enabled")
 		else:
 			self.log.debug("debug logging disabled")
 			self.debug=False
 			self.log.setLevel(logging.INFO)
-			logging.getLogger("pycarwings").setLevel(logging.INFO)
+			logging.getLogger("pycarwings2").setLevel(logging.INFO)
 
 	def get_vins(self, filter="", valuesDict=None, typeId="", targetId=0):
 		return IndigoLeaf.get_vins()
@@ -63,8 +63,12 @@ class Plugin(indigo.PluginBase):
 		self.leaves[0].start_charging()
 
 	def start_climate_control(self, action):
-		self.log.debug("climate control action: %s" % action)
+		self.log.debug("start climate control action: %s" % action)
 		self.leaves[0].start_climate_control()
+
+	def stop_climate_control(self, action):
+		self.log.debug("stop climate control action: %s" % action)
+		self.leaves[0].stop_climate_control()
 
 	def startup(self):
 		if "debuggingEnabled" not in self.pluginPrefs:
@@ -77,7 +81,7 @@ class Plugin(indigo.PluginBase):
 
 		if 'region' not in self.pluginPrefs:
 			# added in 0.0.2
-			self.pluginPrefs['region'] = 'US'
+			self.pluginPrefs['region'] = 'NNA'
 
 		if 'distanceUnit' not in self.pluginPrefs:
 			# added in ... 0.0.2?
