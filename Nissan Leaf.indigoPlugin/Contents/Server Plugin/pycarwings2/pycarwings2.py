@@ -97,33 +97,45 @@ class Session(object):
 		self.logged_in = False
 		self.custom_sessionid = None
 
-	def _request(self, endpoint, params):
+	def _request(self, endpoint, params, login_request=False):
 		params["initial_app_strings"] = "geORNtsZe5I4lRGjG9GZiA"
 		if self.custom_sessionid:
 			params["custom_sessionid"] = self.custom_sessionid
 		else:
 			params["custom_sessionid"] = ""
 
-		req = Request('POST', url=BASE_URL + endpoint, data=params).prepare()
 
-		log.debug("invoking carwings API: %s" % req.url)
-		log.debug("params: %s" % json.dumps(params, sort_keys=True, indent=3, separators=(',', ': ')))
+		tries = 1
+		while tries < 3:
+			tries += 1
+			req = Request('POST', url=BASE_URL + endpoint, data=params).prepare()
 
-		try:
-			sess = requests.Session()
-			response = sess.send(req)
-			log.debug('Response HTTP Status Code: {status_code}'.format(
-				status_code=response.status_code))
-			log.debug('Response HTTP Response Body: {content}'.format(
-				content=response.content))
-		except RequestException:
-			log.warning('HTTP Request failed')
+			log.debug("invoking carwings API: %s" % req.url)
+			log.debug("params: %s" % json.dumps(params, sort_keys=True, indent=3, separators=(',', ': ')))
 
-		j = json.loads(response.content)
+			try:
+				sess = requests.Session()
+				response = sess.send(req)
+				log.debug('Response HTTP Status Code: {status_code}'.format(
+					status_code=response.status_code))
+				log.debug('Response HTTP Response Body: {content}'.format(
+					content=response.content))
+			except RequestException:
+				log.warning('HTTP Request failed')
 
-		if "ErrorMessage" in j:
-			log.error("carwings error %s: %s" % (j["ErrorCode"], j["ErrorMessage"]) )
-			raise CarwingsError
+			j = json.loads(response.content)
+
+			if "ErrorMessage" in j:
+				log.error("carwings error %s: %s" % (j["ErrorCode"], j["ErrorMessage"]) )
+				raise CarwingsError
+
+			if ("status" in j) and (j["status"] == 404) and (not login_request):
+				log.error("carwings error; logging in and trying request again: %s" % j)
+				# try logging in again
+				self.connect()
+				continue
+
+			break
 
 		return j
 
@@ -131,7 +143,7 @@ class Session(object):
 		response = self._request("InitialApp.php", {
 			"RegionCode": self.region_code,
 			"lg": "en-US",
-		})
+		}, login_request=True)
 		ret = CarwingsInitialAppResponse(response)
 
 		c1  = Blowfish.new(ret.baseprm, Blowfish.MODE_ECB)
@@ -143,7 +155,7 @@ class Session(object):
 			"RegionCode": self.region_code,
 			"UserId": self.username,
 			"Password": encodedPassword,
-		})
+		}, login_request=True)
 
 		ret = CarwingsLoginResponse(response)
 
