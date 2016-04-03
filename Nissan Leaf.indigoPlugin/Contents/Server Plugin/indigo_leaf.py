@@ -205,27 +205,39 @@ class IndigoLeaf:
 		self.dev.updateStateOnServer(key="batteryLevel", value=status.battery_percent, decimalPlaces=0,
 									uiValue=u"%s%%" % "{0:.0f}".format(status.battery_percent))
 
+		# 'battery' state images are not yet available, so use sort-of-close icons
+		# instead, for now.
 		if status.is_charging:
-			log.debug("using 'charger on' icon")
-			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryChargerOn)
+#			log.debug("using 'charger on' icon")
+#			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryChargerOn)
+			log.debug("using 'power on' icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.PowerOn)
 		elif status.is_connected:
-			log.debug("using 'charger off' icon")
-			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryCharger)
-		elif status.battery_percent >= 87.5:
-			log.debug("using 'battery high' icon")
-			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevelHigh)
-		elif status.battery_percent >= 62.5:
-			log.debug("using 'battery 75' icon")
-			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel75)
+			# log.debug("using 'charger off' icon")
+			# self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryCharger)
+			log.debug("using 'power off' icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.PowerOff)
+		# elif status.battery_percent >= 87.5:
+		# 	log.debug("using 'battery high' icon")
+		# 	self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevelHigh)
+		# elif status.battery_percent >= 62.5:
+		# 	log.debug("using 'battery 75' icon")
+		# 	self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel75)
 		elif status.battery_percent > 37.5:
-			log.debug("using 'battery 50' icon")
-			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel50)
+			# log.debug("using 'battery 50' icon")
+			# self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel50)
+			log.debug("using 'sensor on' (green) icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOn)
 		elif status.battery_percent > 15:
-			log.debug("using 'battery 25' icon")
-			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel25)
+			# log.debug("using 'battery 25' icon")
+			# self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevel25)
+			log.debug("using 'sensor off' (gray) icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.SensorOff)
 		else:
-			log.debug("using 'battery low' icon")
-			self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevelLow)
+			# log.debug("using 'battery low' icon")
+			# self.dev.updateStateImageOnServer(indigo.kStateImageSel.BatteryLevelLow)
+			log.debug("using 'sensor tripped' (red) icon")
+			self.dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
 		status3 = self.leaf.get_latest_hvac_status()
 		self.dev.updateStateOnServer(key="climateControl", value=status3.is_hvac_running)
