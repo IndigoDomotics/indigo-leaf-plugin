@@ -138,8 +138,8 @@ class CarwingsLoginResponse(CarwingsResponse):
 			self.nickname = response["VehicleInfoList"]["vehicleInfo"][0]["nickname"]
 			self.custom_sessionid = response["VehicleInfoList"]["vehicleInfo"][0]["custom_sessionid"]
 		elif "vehicleInfo" in response:
-			self.nickname = response["vehicleInfo"]["nickname"]
-			self.custom_sessionid = response["vehicleInfo"]["custom_sessionid"]
+			self.nickname = response["vehicleInfo"][0]["nickname"]
+			self.custom_sessionid = response["vehicleInfo"][0]["custom_sessionid"]
 
 		customer_info = response["CustomerInfo"]
 		self.tz = customer_info["Timezone"]
