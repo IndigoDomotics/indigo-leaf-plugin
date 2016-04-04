@@ -101,7 +101,7 @@ class Session(object):
 		ret = self._request(endpoint, params)
 
 		if ("status" in ret) and (ret["status"] == 404):
-			log.error("carwings error; logging in and trying request again: %s" % j)
+			log.error("carwings error; logging in and trying request again: %s" % ret)
 			# try logging in again
 			self.connect()
 			ret = self._request(endpoint, params)
