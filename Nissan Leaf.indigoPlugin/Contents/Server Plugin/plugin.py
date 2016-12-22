@@ -3,11 +3,13 @@
 
 import indigo
 import logging
+import re
 from urllib2 import HTTPError
 
 from indigo_leaf import IndigoLeaf
 from pycarwings2.pycarwings2 import CarwingsError
 
+numeric_regex = re.compile(r"[1-9][0-9]*")
 
 DEBUGGING_ENABLED_MAP = {
 	"y" : True,
@@ -87,6 +89,12 @@ class Plugin(indigo.PluginBase):
 			# added in ... 0.0.2?
 			self.pluginPrefs['distanceUnit'] = 'k'
 
+		if 'updateDelayMinutesWhenCharging' not in self.pluginPrefs:
+			self.pluginPrefs['updateDelayMinutesWhenCharging'] = 15
+
+		if 'updateDelayMinutesWhenNotCharging' not in self.pluginPrefs:
+			self.pluginPrefs['updateDelayMinutesWhenNotCharging'] = 15
+
 		IndigoLeaf.use_distance_scale(self.pluginPrefs['distanceUnit'])
 		IndigoLeaf.setup(self.pluginPrefs['username'], self.pluginPrefs['password'], self.pluginPrefs['region'])
 
@@ -102,7 +110,7 @@ class Plugin(indigo.PluginBase):
 		newProps["SupportsBatteryLevel"] = True
 		dev.replacePluginPropsOnServer(newProps)
 
-		leaf = IndigoLeaf(dev, self)
+		leaf = IndigoLeaf(dev, self, charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenCharging'], not_charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenNotCharging'])
 
 		# assume device will be updated on the next loop
 
@@ -118,11 +126,29 @@ class Plugin(indigo.PluginBase):
 		self.log.debug("validatePrefsConfigUi: %s" % valuesDict)
 		self.update_logging(bool(valuesDict['debuggingEnabled'] and "y" == valuesDict['debuggingEnabled']))
 
+		errorDict = indigo.Dict()
+
+		if not valuesDict["updateDelayMinutesWhenCharging"] > 0:
+			errorDict["updateDelayMinutesWhenCharging"] = "This value must be a whole number >= 1"
+		if not valuesDict["updateDelayMinutesWhenNotCharging"] > 0:
+			errorDict["updateDelayMinutesWhenNotCharging"] = "This value must be a whole number >= 1"
+
+		if len(errorDict) > 0:
+			return (False, valuesDict, errorDict)
+
+
 		IndigoLeaf.use_distance_scale(valuesDict["distanceUnit"])
+
+		if self.leaves:
+			for l in self.leaves:
+				l.set_update_frequencies(charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenCharging'], not_charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenNotCharging'])
+
 
 		if (self.pluginPrefs['region'] != valuesDict['region']) or (self.pluginPrefs['username'] != valuesDict['username']) or (self.pluginPrefs['password'] != valuesDict['password']):
 			IndigoLeaf.setup(valuesDict['username'], valuesDict['password'], valuesDict['region'])
 			# no need to log in here; that will happen automatically next time we use the service
+
+
 
 		return True
 
@@ -130,18 +156,19 @@ class Plugin(indigo.PluginBase):
 	def runConcurrentThread(self):
 		try:
 			while True:
-				try:
 
-					for l in self.leaves:
-						l.request_and_update_status(self.sleep)
+				for l in self.leaves:
 
-				except HTTPError as e:
-					self.log.error("HTTP error connecting to Nissan's servers; will try again later (%s)" % e)
-					self.log.debug(e.read())
-				except CarwingsError as e:
-					self.log.error("Carwings error connecting to Nissan's servers; will try again later (%s)" % e)
+					try:
+						l.update_if_necessary(self.sleep)
+					except HTTPError as e:
+						self.log.error("HTTP error connecting to Nissan's servers; will try again later (%s)" % e)
+						self.log.debug(e.read())
+					except CarwingsError as e:
+						self.log.error("Carwings error connecting to Nissan's servers; will try again later (%s)" % e)
 
-				self.sleep(840)
+
+				self.sleep(30)
 
 		except self.StopThread:
 			pass	# Optionally catch the StopThread exception and do any needed cleanup.

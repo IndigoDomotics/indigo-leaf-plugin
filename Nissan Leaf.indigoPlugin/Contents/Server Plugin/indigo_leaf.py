@@ -1,6 +1,7 @@
 import yaml
 import indigo
 import logging
+from datetime import datetime, timedelta
 
 import pycarwings2
 
@@ -16,6 +17,9 @@ log = logging.getLogger('indigo.nissanleaf.plugin')
 
 def _timedelta_to_minutes(td):
 	return (td.days * 24 * 60) + (td.seconds / 60)
+
+def _timedelta_to_seconds(td):
+	return (td.days * 24 * 60 * 60) + td.seconds
 
 def _minutes_to_dms(x):
 	if x == 0:
@@ -66,10 +70,17 @@ class IndigoLeaf:
 	def get_vins():
 		return IndigoLeaf.vins
 
-	def __init__(self, dev, plugin):
+	def __init__(self, dev, plugin, charging_freq_min=15, not_charging_freq_min=15):
 		log.debug("IndigoLeaf object init")
 		self.dev = dev
 		self.leaf = None
+		self.charging = False
+		self.last_update_timestamp = datetime(2000, 1, 1)
+		self.set_update_frequencies(charging_freq_min, not_charging_freq_min)
+		self.charging_update_frequency_minutes = charging_freq_min
+		self.not_charging_update_frequency_minutes = not_charging_freq_min
+		self.next_update_timestamp = datetime.now()
+
 
 		if "address" in dev.pluginProps:
 			# version 0.0.3
@@ -79,6 +90,10 @@ class IndigoLeaf:
 			self.vin = dev.pluginProps["vin"]
 		else:
 			log.error("couldn't find a property with the VIN: %s" % dev.pluginProps)
+
+	def set_update_frequencies(self, charging_freq_min, not_charging_freq_min):
+		self.charging_update_frequency_minutes=charging_freq_min
+		self.not_charging_update_frequency_minutes = not_charging_freq_min
 
 
 	def start_charging(self):
@@ -108,6 +123,18 @@ class IndigoLeaf:
 			log.warn("error stopping climate control")
 			raise e
 
+	def update_if_necessary(self, sleep_method):
+		log.debug("update if necessary")
+
+		td = datetime.now() - self.last_update_timestamp
+		self.dev.updateStateOnServer(key="secondsSinceLastUpdate", value=_timedelta_to_seconds(td), decimalPlaces=0,
+									 uiValue=_minutes_to_dms(_timedelta_to_minutes(td)))
+
+		if datetime.now() > self.next_update_timestamp:
+			self.request_and_update_status(sleep_method)
+		else:
+			log.debug("not time to update yet")
+
 	def request_and_update_status(self, sleep_method):
 		log.debug("request and update status")
 		result_key = self.request_status()
@@ -120,10 +147,13 @@ class IndigoLeaf:
 				break
 		else:
 			log.warn("nissan did not return an updated status after %ss of waiting; giving up this time" % total_wait)
+			self.update_again_in_x_seconds(600)
 			return False
 
 		return True
 
+	def update_again_in_x_seconds(self, sec):
+		self.next_update_timestamp = datetime.now() + timedelta(seconds=sec)
 
 	def request_status(self):
 		log.info("requesting status for %s" % self.vin)
@@ -205,6 +235,9 @@ class IndigoLeaf:
 		self.dev.updateStateOnServer(key="batteryLevel", value=status.battery_percent, decimalPlaces=0,
 									uiValue=u"%s%%" % "{0:.0f}".format(status.battery_percent))
 
+		self.charging = status.is_charging
+
+
 		# 'battery' state images are not yet available, so use sort-of-close icons
 		# instead, for now.
 		if status.is_charging:
@@ -242,7 +275,15 @@ class IndigoLeaf:
 		status3 = self.leaf.get_latest_hvac_status()
 		self.dev.updateStateOnServer(key="climateControl", value=status3.is_hvac_running)
 
+		self.last_update_timestamp = datetime.now()
+		self.dev.updateStateOnServer(key="lastUpdateTimestamp", value=self.last_update_timestamp.ctime())
+		self.dev.updateStateOnServer(key="secondsSinceLastUpdate", value=0)
 
-		log.info("finished updating status for %s" % self.vin)
+		if status.is_charging:
+			self.update_again_in_x_seconds(60 * self.charging_update_frequency_minutes)
+		else:
+			self.update_again_in_x_seconds(60 * self.not_charging_update_frequency_minutes)
+
+		log.info("finished updating status for %s; next update at %s" % (self.vin, self.next_update_timestamp.ctime()))
 
 		return True
