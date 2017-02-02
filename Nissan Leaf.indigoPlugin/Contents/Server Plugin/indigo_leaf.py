@@ -2,6 +2,8 @@ import yaml
 import indigo
 import logging
 from datetime import datetime, timedelta
+from pycarwings2.pycarwings2 import CarwingsError
+from urllib2 import HTTPError
 
 import pycarwings2
 
@@ -23,7 +25,7 @@ def _timedelta_to_seconds(td):
 
 def _minutes_to_dms(x):
 	if x == 0:
-		return "0m";
+		return "0m"
 
 	(days, mins) = divmod(x, 24 * 60)
 	(hrs,  mins) = divmod(mins, 60)
@@ -70,17 +72,24 @@ class IndigoLeaf:
 	def get_vins():
 		return IndigoLeaf.vins
 
-	def __init__(self, dev, plugin, charging_freq_min=15, not_charging_freq_min=15):
+	def __init__(self, dev, plugin, charging_freq_min=15, not_charging_freq_min=15, error_freq_min=60):
 		log.debug("IndigoLeaf object init")
 		self.dev = dev
 		self.leaf = None
 		self.charging = False
 		self.last_update_timestamp = datetime(2000, 1, 1)
-		self.set_update_frequencies(charging_freq_min, not_charging_freq_min)
-		self.charging_update_frequency_minutes = charging_freq_min
-		self.not_charging_update_frequency_minutes = not_charging_freq_min
+
+		# default/initialization values only, overridden by subsequent call to set_update_frequencies
+		self.charging_update_frequency_minutes=15
+		self.not_charging_update_frequency_minutes=15
+		self.error_update_frequency_minutes=60
+		# overrides the three default values just above
+		self.set_update_frequencies(charging_freq_min, not_charging_freq_min, error_freq_min)
+
 		self.next_update_timestamp = datetime.now()
 
+
+		log.debug("update frequencies:   charging: %d min, not charging: %d min" % (charging_freq_min, not_charging_freq_min) )
 
 		if "address" in dev.pluginProps:
 			# version 0.0.3
@@ -91,9 +100,10 @@ class IndigoLeaf:
 		else:
 			log.error("couldn't find a property with the VIN: %s" % dev.pluginProps)
 
-	def set_update_frequencies(self, charging_freq_min, not_charging_freq_min):
+	def set_update_frequencies(self, charging_freq_min, not_charging_freq_min, error_freq_min):
 		self.charging_update_frequency_minutes=charging_freq_min
 		self.not_charging_update_frequency_minutes = not_charging_freq_min
+		self.error_update_frequency_minutes = error_freq_min
 
 
 	def start_charging(self):
@@ -131,7 +141,17 @@ class IndigoLeaf:
 									 uiValue=_minutes_to_dms(_timedelta_to_minutes(td)))
 
 		if datetime.now() > self.next_update_timestamp:
-			self.request_and_update_status(sleep_method)
+
+			try:
+				self.request_and_update_status(sleep_method)
+			except HTTPError as e:
+				log.error("HTTP error connecting to Nissan's servers; will try again later (%s)" % e)
+				log.debug(e.read())
+				self.update_again_in_x_seconds(60 * self.error_update_frequency_minutes)
+			except CarwingsError as e:
+				log.error("Carwings error connecting to Nissan's servers; will try again later (%s)" % e)
+				self.update_again_in_x_seconds(60 * self.error_update_frequency_minutes)
+
 		else:
 			log.debug("not time to update yet")
 
@@ -147,7 +167,7 @@ class IndigoLeaf:
 				break
 		else:
 			log.warn("nissan did not return an updated status after %ss of waiting; giving up this time" % total_wait)
-			self.update_again_in_x_seconds(600)
+			self.update_again_in_x_seconds(60 * self.error_update_frequency_minutes)
 			return False
 
 		return True

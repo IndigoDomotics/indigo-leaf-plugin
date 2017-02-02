@@ -4,10 +4,10 @@
 import indigo
 import logging
 import re
-from urllib2 import HTTPError
+
 
 from indigo_leaf import IndigoLeaf
-from pycarwings2.pycarwings2 import CarwingsError
+
 
 numeric_regex = re.compile(r"[1-9][0-9]*")
 
@@ -95,6 +95,9 @@ class Plugin(indigo.PluginBase):
 		if 'updateDelayMinutesWhenNotCharging' not in self.pluginPrefs:
 			self.pluginPrefs['updateDelayMinutesWhenNotCharging'] = 15
 
+		if 'updateDelayMinutesOnError' not in self.pluginPrefs:
+			self.pluginPrefs['updateDelayMinutesOnError'] = 60
+
 		IndigoLeaf.use_distance_scale(self.pluginPrefs['distanceUnit'])
 		IndigoLeaf.setup(self.pluginPrefs['username'], self.pluginPrefs['password'], self.pluginPrefs['region'])
 
@@ -110,7 +113,10 @@ class Plugin(indigo.PluginBase):
 		newProps["SupportsBatteryLevel"] = True
 		dev.replacePluginPropsOnServer(newProps)
 
-		leaf = IndigoLeaf(dev, self, charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenCharging'], not_charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenNotCharging'])
+		leaf = IndigoLeaf(dev, self,
+						  charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenCharging'],
+						  not_charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenNotCharging'],
+						  error_freq_min=self.pluginPrefs['updateDelayMinutesOnError'])
 
 		# assume device will be updated on the next loop
 
@@ -132,6 +138,8 @@ class Plugin(indigo.PluginBase):
 			errorDict["updateDelayMinutesWhenCharging"] = "This value must be a whole number >= 1"
 		if not valuesDict["updateDelayMinutesWhenNotCharging"] > 0:
 			errorDict["updateDelayMinutesWhenNotCharging"] = "This value must be a whole number >= 1"
+		if not valuesDict["updateDelayMinutesOnError"] > 0:
+			errorDict["updateDelayMinutesOnError"] = "This value must be a whole number >= 1"
 
 		if len(errorDict) > 0:
 			return (False, valuesDict, errorDict)
@@ -141,7 +149,9 @@ class Plugin(indigo.PluginBase):
 
 		if self.leaves:
 			for l in self.leaves:
-				l.set_update_frequencies(charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenCharging'], not_charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenNotCharging'])
+				l.set_update_frequencies(charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenCharging'],
+										 not_charging_freq_min=self.pluginPrefs['updateDelayMinutesWhenNotCharging'],
+										 error_freq_min=self.pluginPrefs['updateDelayMinutesOnError'])
 
 
 		if (self.pluginPrefs['region'] != valuesDict['region']) or (self.pluginPrefs['username'] != valuesDict['username']) or (self.pluginPrefs['password'] != valuesDict['password']):
@@ -158,15 +168,7 @@ class Plugin(indigo.PluginBase):
 			while True:
 
 				for l in self.leaves:
-
-					try:
-						l.update_if_necessary(self.sleep)
-					except HTTPError as e:
-						self.log.error("HTTP error connecting to Nissan's servers; will try again later (%s)" % e)
-						self.log.debug(e.read())
-					except CarwingsError as e:
-						self.log.error("Carwings error connecting to Nissan's servers; will try again later (%s)" % e)
-
+					l.update_if_necessary(self.sleep)
 
 				self.sleep(30)
 

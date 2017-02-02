@@ -35,6 +35,9 @@
 	<Field id="updateDelayMinutesWhenNotCharging" type="textfield" defaultValue="15">
 		<Label>Update frequency when NOT charging (minutes)</Label>
 	</Field>
+	<Field id="updateDelayMinutesOnError" type="textfield" defaultValue="60">
+		<Label>Update frequency upon communication error (minutes)</Label>
+	</Field>
 
 
 	<Field id ="debuggingEnabled" type="menu">
