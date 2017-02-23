@@ -101,6 +101,16 @@
 				<TriggerLabel>Climate Control</TriggerLabel>
 				<ControlPageLabel>Climate Control</ControlPageLabel>
 			</State>
+			<State id="lastUpdateTimestamp" readonly="true">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Last Update Timestamp</TriggerLabel>
+				<ControlPageLabel>Last Update Timestamp</ControlPageLabel>
+			</State>
+			<State id="secondsSinceLastUpdate" readonly="true">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Time Since Last Update</TriggerLabel>
+				<ControlPageLabel>Time Since Last Update</ControlPageLabel>
+			</State>
 		</States>
 		<UiDisplayStateId>batteryLevel</UiDisplayStateId>
 	</Device>

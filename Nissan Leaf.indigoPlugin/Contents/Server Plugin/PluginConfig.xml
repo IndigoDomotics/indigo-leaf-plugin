@@ -29,6 +29,16 @@
 			<Option value="f">furlong</Option>
 		</List>
 	</Field>
+	<Field id="updateDelayMinutesWhenCharging" type="textfield" defaultValue="15">
+		<Label>Update frequency when charging (minutes)</Label>
+	</Field>
+	<Field id="updateDelayMinutesWhenNotCharging" type="textfield" defaultValue="15">
+		<Label>Update frequency when NOT charging (minutes)</Label>
+	</Field>
+	<Field id="updateDelayMinutesOnError" type="textfield" defaultValue="60">
+		<Label>Update frequency upon communication error (minutes)</Label>
+	</Field>
+
 
 	<Field id ="debuggingEnabled" type="menu">
 		<Label>Debug logging enabled:</Label>
