@@ -100,7 +100,7 @@ class Session(object):
 	def _request_with_retry(self, endpoint, params):
 		ret = self._request(endpoint, params)
 
-		if ("status" in ret) and (ret["status"] == 404):
+		if ("status" in ret) and (ret["status"] >= 400):
 			log.error("carwings error; logging in and trying request again: %s" % ret)
 			# try logging in again
 			self.connect()
