@@ -16,7 +16,7 @@ import logging
 from datetime import date, timedelta, datetime
 import pycarwings2
 
-log = logging.getLogger("pycarwings2")
+log = logging.getLogger(__name__)
 
 def _time_remaining(t):
 	minutes = float(0)
@@ -216,9 +216,12 @@ class CarwingsLoginResponse(CarwingsResponse):
 class CarwingsBatteryStatusResponse(CarwingsResponse):
 	def __init__(self, status):
 		CarwingsResponse.__init__(self, status)
+		
 
 		self._set_timestamp(status)
 		self._set_cruising_ranges(status)
+                
+		self.answer = status
 
 		self.battery_capacity = status["batteryCapacity"]
 		self.battery_degradation = status["batteryDegradation"]
@@ -238,7 +241,8 @@ class CarwingsBatteryStatusResponse(CarwingsResponse):
 		self.time_to_full_l2 = timedelta(minutes=_time_remaining(status["timeRequiredToFull200"]))
 		self.time_to_full_l2_6kw = timedelta(minutes=_time_remaining(status["timeRequiredToFull200_6kW"]))
 
-		self.battery_percent = 100 * float(status["batteryDegradation"]) / float(status["batteryCapacity"])
+		# 2016-12: battery degradation is always 0-12 even if battery capacity is diminished.
+		self.battery_percent = 100 * float(status["batteryDegradation"]) / 12.0
 
 
 """
@@ -502,6 +506,8 @@ class CarwingsDrivingAnalysisResponse(CarwingsResponse):
 class CarwingsLatestBatteryStatusResponse(CarwingsResponse):
 	def __init__(self, status):
 		CarwingsResponse.__init__(self, status["BatteryStatusRecords"])
+		
+                self.answer = status
 
 		recs = status["BatteryStatusRecords"]
 
