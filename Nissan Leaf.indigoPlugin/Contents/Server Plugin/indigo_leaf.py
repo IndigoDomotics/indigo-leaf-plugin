@@ -293,7 +293,10 @@ class IndigoLeaf:
 			self.dev.updateStateImageOnServer(indigo.kStateImageSel.SensorTripped)
 
 		status3 = self.leaf.get_latest_hvac_status()
-		self.dev.updateStateOnServer(key="climateControl", value=status3.is_hvac_running)
+		if status3 is None:
+			log.warn("could not retrieve HVAC state from server")
+		else:
+			self.dev.updateStateOnServer(key="climateControl", value=status3.is_hvac_running)
 
 		self.last_update_timestamp = datetime.now()
 		self.dev.updateStateOnServer(key="lastUpdateTimestamp", value=self.last_update_timestamp.ctime())

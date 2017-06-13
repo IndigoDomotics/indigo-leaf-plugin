@@ -383,7 +383,10 @@ class Leaf:
 			"TimeFrom": self.bound_time
 		})
 		if response["status"] == 200:
-			return CarwingsLatestClimateControlStatusResponse(response)
+			if "RemoteACRecords" in response:
+				return CarwingsLatestClimateControlStatusResponse(response)
+			else:
+				log.warning('no remote a/c records returned by server')
 
 		return None
 
